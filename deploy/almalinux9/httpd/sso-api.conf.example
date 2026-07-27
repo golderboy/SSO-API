@@ -1,9 +1,12 @@
-<VirtualHost *:80>
+Listen 8089
+Listen 4343 https
+
+<VirtualHost *:8089>
     ServerName CHANGE-ME.example.invalid
-    Redirect permanent / https://CHANGE-ME.example.invalid/
+    Redirect permanent / https://CHANGE-ME.example.invalid:4343/
 </VirtualHost>
 
-<VirtualHost *:443>
+<VirtualHost *:4343>
     ServerName CHANGE-ME.example.invalid
     DocumentRoot /var/www/sso-api/public
 
@@ -32,8 +35,6 @@
     <LocationMatch "^/(?!\.well-known/)\.">
         Require all denied
     </LocationMatch>
-
-    Header always set Strict-Transport-Security "max-age=31536000"
 
     ErrorLog logs/sso-api-error.log
     CustomLog logs/sso-api-access.log combined

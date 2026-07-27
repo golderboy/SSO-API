@@ -3,6 +3,9 @@
 คู่มือนี้กำหนด path ตัวอย่างเป็น `/var/www/sso-api` และฐานข้อมูล `sso`
 ต้องแทนค่าโดเมน, certificate และ credential ให้ตรงกับ server จริง
 
+Apache deployment ของระบบนี้ใช้ HTTP port `8089` และ HTTPS port `4343`
+เพื่อไม่ชนกับโดเมนหลักที่ใช้ port `80/443`
+
 ## 1. เตรียมระบบ
 
 อัปเดตระบบและตรวจ PHP stream ที่มีอยู่ก่อน:
@@ -52,6 +55,17 @@ chmod 600 .env
 
 เปิด `THAID_ENABLED=true` และ `MOPH_ID_ENABLED=true`
 เมื่อใส่ test credential ครบและพร้อมทดสอบ UAT เท่านั้น
+
+`APP_URL` และ callback URI ทุกระบบต้องระบุ HTTPS port `4343` เช่น:
+
+```dotenv
+APP_URL=https://sso.example.go.th:4343
+THAID_REDIRECT_URI=https://sso.example.go.th:4343/api/callback/thaid
+HEALTH_ID_REDIRECT_URI=https://sso.example.go.th:4343/api/callback/moph-id
+```
+
+ตัวอย่าง callback เป็นรูปแบบอธิบายเท่านั้น ต้องใช้ path จริงที่ระบบรองรับ
+และลงทะเบียนแบบ exact match กับผู้ให้บริการก่อนเปิดใช้งาน
 
 สร้าง secret ภายใน server ห้ามส่งค่าผ่านแชตหรือ commit:
 
@@ -109,10 +123,16 @@ sudo restorecon -Rv /var/www/sso-api
 
 sudo setsebool -P httpd_can_network_connect on
 sudo setsebool -P httpd_can_network_connect_db on
+
+sudo semanage port -a -t http_port_t -p tcp 8089
+sudo semanage port -a -t http_port_t -p tcp 4343
 ```
 
 อย่าปิด SELinux เพื่อแก้ permission ให้ตรวจ `ausearch`/`sealert`
 และปรับ label เฉพาะ path ที่จำเป็น
+
+หาก `semanage port -a` แจ้งว่าพอร์ตถูกกำหนดไว้แล้ว ให้ตรวจด้วย
+`sudo semanage port -l | grep http_port_t` ก่อนใช้ `-m` แก้ชนิดของพอร์ต
 
 ## 5. เลือก Web server
 
@@ -125,6 +145,10 @@ sudoedit /etc/httpd/conf.d/sso-api.conf
 sudo apachectl configtest
 sudo systemctl enable --now php-fpm httpd
 ```
+
+ไฟล์นี้ประกาศเฉพาะ `8089/4343` และไม่แก้ VirtualHost หลักที่ `80/443`
+ไม่เปิด HSTS บน VirtualHost นี้ เพราะ HTTP และ HTTPS ใช้คนละ non-standard port
+ซึ่ง HSTS ระดับ hostname อาจทำให้ browser พยายามใช้ TLS ผิดที่ port `8089`
 
 ### Nginx
 
@@ -143,8 +167,8 @@ sudo systemctl enable --now php-fpm nginx
 เปิด firewall หลังตั้ง certificate และ domain แล้ว:
 
 ```bash
-sudo firewall-cmd --permanent --add-service=http
-sudo firewall-cmd --permanent --add-service=https
+sudo firewall-cmd --permanent --add-port=8089/tcp
+sudo firewall-cmd --permanent --add-port=4343/tcp
 sudo firewall-cmd --reload
 ```
 
@@ -162,10 +186,10 @@ php artisan sso:check-installation --providers
 ## 7. Smoke test
 
 ```bash
-curl --fail --silent --show-error https://YOUR-DOMAIN/up
+curl --fail --silent --show-error https://YOUR-DOMAIN:4343/up
 curl --fail --silent --show-error \
   -H 'Accept: application/json' \
-  https://YOUR-DOMAIN/api/v1/auth/me
+  https://YOUR-DOMAIN:4343/api/v1/auth/me
 ```
 
 ผลที่คาดหวังคือ `/up` สำเร็จ และ `/auth/me` ตอบ `401`
