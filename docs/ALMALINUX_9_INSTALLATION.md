@@ -147,18 +147,18 @@ sudo semanage port -m -t http_port_t -p tcp 8089
 
 ## 5. เลือก Web server
 
-### Apache
+### Apache บน AlmaLinux 9
 
 ```bash
 sudo dnf install -y httpd mod_ssl
-sudo apachectl -S > /root/httpd-vhosts-before-sso.txt
+sudo httpd -S > /root/httpd-vhosts-before-sso.txt
 sudo httpd -M | grep -E 'headers|proxy|proxy_http|rewrite'
 sudo cp -a /etc/httpd/conf.d/ssl.conf /root/ssl.conf.before-sso-call
 sudo cp deploy/almalinux9/httpd/sso-api.conf.example /etc/httpd/conf.d/sso-api.conf
 sudo cp deploy/almalinux9/httpd/sso-api-proxy.inc.example \
   /etc/httpd/conf.d/sso-api-proxy.inc
 sudoedit /etc/httpd/conf.d/ssl.conf
-sudo apachectl configtest
+sudo httpd -t
 sudo systemctl enable --now php-fpm
 sudo systemctl reload httpd
 ```
@@ -177,12 +177,12 @@ IncludeOptional conf.d/sso-api-proxy.inc
 หลัง reload ให้เปรียบเทียบ VirtualHost และ listener:
 
 ```bash
-sudo apachectl -S > /root/httpd-vhosts-after-sso.txt
+sudo httpd -S > /root/httpd-vhosts-after-sso.txt
 if sudo test -f /root/httpd-vhosts-before-sso.txt; then
   sudo diff -u /root/httpd-vhosts-before-sso.txt \
     /root/httpd-vhosts-after-sso.txt
 else
-  echo "No pre-change snapshot; review current apachectl -S output manually."
+  echo "No pre-change snapshot; review current httpd -S output manually."
   sudo cat /root/httpd-vhosts-after-sso.txt
 fi
 sudo ss -lntp | grep 8089
@@ -204,6 +204,8 @@ php artisan sso:check-installation --providers
 
 ## 7. Smoke test
 
+### รันบน AlmaLinux Server ด้วย Bash
+
 ```bash
 curl --fail --silent --show-error \
   --user-agent 'Sobmoei-SSO-HealthCheck/1.0' \
@@ -213,15 +215,20 @@ curl --fail --silent --show-error \
   --resolve sobmoeiservice.moph.go.th:443:127.0.0.1 \
   --user-agent 'Sobmoei-SSO-HealthCheck/1.0' \
   https://sobmoeiservice.moph.go.th/call/up
-curl --silent --show-error --output /dev/null \
-  --write-out '%{http_code}\n' \
-  --user-agent 'Sobmoei-SSO-HealthCheck/1.0' \
-  -H 'Accept: application/json' \
-  https://sobmoeiservice.moph.go.th/call/api/v1/auth/me
 ```
 
-ผลที่คาดหวังคือ backend `/up` และ public `/call/up` สำเร็จ ส่วน
-`/call/api/v1/auth/me` ตอบ `401`
+backend `/up` และ public `/call/up` ต้องสำเร็จ
+
+### รันจาก Windows PC ด้วย PowerShell
+
+ใช้ `curl.exe` แบบบรรทัดเดียว ห้ามใช้ `curl` alias หรือ Bash continuation `\`:
+
+```powershell
+curl.exe -A "Sobmoei-SSO-HealthCheck/1.0" -sS -o NUL -w "External: %{http_code}, TLS=%{ssl_verify_result}\n" "https://sobmoeiservice.moph.go.th/call/up"
+curl.exe -A "Sobmoei-SSO-HealthCheck/1.0" -H "Accept: application/json" -sS -o NUL -w "Auth check: %{http_code}\n" "https://sobmoeiservice.moph.go.th/call/api/v1/auth/me"
+```
+
+ผลที่คาดหวังคือ `External: 200, TLS=0` และ `Auth check: 401`
 เมื่อยังไม่ได้ส่ง Admin Bearer Token
 
 หลังจากนั้นทดสอบ login, Admin CRUD, ออก application API key และ
