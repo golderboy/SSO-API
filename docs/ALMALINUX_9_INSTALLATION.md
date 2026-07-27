@@ -202,6 +202,18 @@ php artisan sso:check-installation --providers
 
 คำสั่งตรวจ installation จะไม่แสดงค่า secret และต้องจบด้วย exit code `0`
 
+หาก `sso:create-admin` แจ้งว่า CID มีผู้ใช้อยู่แล้ว ห้ามสร้าง record ซ้ำ
+หลังตรวจสอบและยืนยันว่าเป็นบัญชีบุคลากรที่ต้องยกระดับจริง ให้ใช้:
+
+```bash
+sudo -u apache php artisan sso:create-admin --promote-existing \
+  --name="ADMINISTRATOR_NAME" \
+  --email="ADMINISTRATOR_EMAIL"
+```
+
+คำสั่งนี้จะตั้งบัญชีเดิมให้ active และเป็น Super Admin, เปลี่ยนรหัสผ่าน
+ตามค่าที่กรอก และ revoke token เดิมทั้งหมด ไม่สามารถ promote บัญชีที่ถูกลบได้
+
 ## 7. Smoke test
 
 ### รันบน AlmaLinux Server ด้วย Bash
