@@ -1,0 +1,34 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+
+# Internal source documents must not be published
+docs/*.pdf
+docs/source/
+
+# Dependency and build output
+vendor/
+node_modules/
+dist/
+build/
+coverage/
+.phpunit.cache/
+
+# Runtime data
+storage/logs/
+logs/
+tmp/
+*.log
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

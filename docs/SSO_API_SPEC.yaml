@@ -1,0 +1,229 @@
+openapi: 3.1.0
+info:
+  title: Sobmoei SSO API
+  version: 0.0.1-planning
+  license:
+    name: All rights reserved
+    identifier: LicenseRef-Proprietary
+  description: >
+    Planning contract only. The final contract depends on downstream OIDC engine
+    and approved decision records. No production server URL is declared.
+servers:
+  - url: /
+    description: Relative URL; the production base URL is a decision gate
+security: []
+tags:
+  - name: Discovery
+    description: OpenID Provider metadata
+  - name: Authorization
+    description: Browser authorization flow
+  - name: Token
+    description: Back-channel token and claim operations
+  - name: Session
+    description: Session and token lifecycle operations
+paths:
+  /.well-known/openid-configuration:
+    get:
+      tags: [Discovery]
+      summary: Return OpenID Provider metadata
+      operationId: getOpenIdConfiguration
+      responses:
+        "200":
+          description: Provider metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "404":
+          description: Discovery is not enabled
+  /authorize:
+    get:
+      tags: [Authorization]
+      summary: Start an authorization request
+      operationId: authorize
+      parameters:
+        - name: response_type
+          in: query
+          required: true
+          schema:
+            type: string
+            const: code
+        - name: client_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+        - name: scope
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 16
+        - name: nonce
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: code_challenge
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: code_challenge_method
+          in: query
+          required: false
+          schema:
+            type: string
+            const: S256
+      responses:
+        "302":
+          description: Redirect to an upstream provider or registered callback
+        "400":
+          $ref: "#/components/responses/OAuthError"
+  /token:
+    post:
+      tags: [Token]
+      summary: Exchange a one-time authorization code
+      operationId: exchangeAuthorizationCode
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [grant_type, code, redirect_uri, client_id]
+              properties:
+                grant_type:
+                  type: string
+                  const: authorization_code
+                code:
+                  type: string
+                redirect_uri:
+                  type: string
+                  format: uri
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+                  writeOnly: true
+                code_verifier:
+                  type: string
+      responses:
+        "200":
+          description: Token response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          $ref: "#/components/responses/OAuthError"
+        "401":
+          $ref: "#/components/responses/OAuthError"
+  /userinfo:
+    get:
+      tags: [Token]
+      summary: Return approved claims for the current subject
+      operationId: getUserInfo
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Approved user claims
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [sub]
+                properties:
+                  sub:
+                    type: string
+                  org_id:
+                    type: string
+                  hcode:
+                    type: string
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                additionalProperties: false
+        "401":
+          description: Invalid or expired token
+  /revoke:
+    post:
+      tags: [Session]
+      summary: Revoke a token or session
+      operationId: revokeTokenOrSession
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  writeOnly: true
+                token_type_hint:
+                  type: string
+      responses:
+        "200":
+          description: Revocation accepted
+        "401":
+          $ref: "#/components/responses/OAuthError"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, expires_in]
+      properties:
+        access_token:
+          type: string
+          writeOnly: true
+        token_type:
+          type: string
+          const: Bearer
+        expires_in:
+          type: integer
+          minimum: 1
+        id_token:
+          type: string
+          writeOnly: true
+        scope:
+          type: string
+      additionalProperties: false
+    OAuthError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string
+        correlation_id:
+          type: string
+      additionalProperties: false
+  responses:
+    OAuthError:
+      description: OAuth-compatible error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OAuthError"

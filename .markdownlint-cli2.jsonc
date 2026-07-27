@@ -1,0 +1,6 @@
+{
+  "config": {
+    // Thai prose and architecture tables are clearer without hard wrapping.
+    "MD013": false
+  }
+}

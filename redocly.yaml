@@ -1,0 +1,6 @@
+extends:
+  - recommended
+
+rules:
+  # Authorization endpoints legitimately respond with redirects rather than 2xx.
+  operation-2xx-response: off
