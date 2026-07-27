@@ -2,8 +2,9 @@
 # sobmoeiservice.moph.go.th. Keep this mapping before any catch-all proxy rule.
 RedirectMatch 301 ^/call$ /call/
 
+ProxyPreserveHost On
+
 <Location "/call/">
-    RequestHeader set Host "sobmoeiservice.moph.go.th"
     RequestHeader set X-Forwarded-Host "sobmoeiservice.moph.go.th"
     RequestHeader set X-Forwarded-Proto "https"
     RequestHeader set X-Forwarded-Port "443"

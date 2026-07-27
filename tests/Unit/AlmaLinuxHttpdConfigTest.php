@@ -56,8 +56,12 @@ class AlmaLinuxHttpdConfigTest extends TestCase
             '<Location "/call/">',
             $this->proxyInclude,
         );
-        $this->assertStringNotContainsString(
+        $this->assertStringContainsString(
             'ProxyPreserveHost On',
+            $this->proxyInclude,
+        );
+        $this->assertStringNotContainsString(
+            'RequestHeader set Host',
             $this->proxyInclude,
         );
         $this->assertStringNotContainsString(
