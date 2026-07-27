@@ -1,0 +1,15 @@
+# Insert these directives inside the existing _default_:443 VirtualHost for
+# sobmoeiservice.moph.go.th. Keep this mapping before any catch-all proxy rule.
+RedirectMatch 301 ^/call$ /call/
+
+<Location "/call/">
+    RequestHeader set Host "sobmoeiservice.moph.go.th"
+    RequestHeader set X-Forwarded-Host "sobmoeiservice.moph.go.th"
+    RequestHeader set X-Forwarded-Proto "https"
+    RequestHeader set X-Forwarded-Port "443"
+    RequestHeader set X-Forwarded-Prefix "/call"
+</Location>
+
+ProxyPass "/call/" "http://127.0.0.1:8089/" connectiontimeout=5 timeout=30 retry=0
+ProxyPassReverse "/call/" "http://127.0.0.1:8089/"
+ProxyPassReverseCookiePath "/" "/call/"

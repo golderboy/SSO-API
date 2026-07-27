@@ -3,9 +3,10 @@
 คู่มือนี้กำหนด path ตัวอย่างเป็น `/var/www/sso-api` และฐานข้อมูล `sso`
 ต้องแทนค่าโดเมน, certificate และ credential ให้ตรงกับ server จริง
 
-Apache deployment ของระบบนี้ใช้ name-based VirtualHost ร่วมกับเว็บไซต์อื่นบน
-HTTPS port `443` โดยแยกด้วย `ServerName` ของ SSO และไม่ประกาศ `Listen 443` ซ้ำ
-WAF จึงส่ง traffic ผ่าน port มาตรฐานได้โดยไม่ต้องเปิด port เพิ่ม
+Apache deployment ของระบบนี้ใช้ path-based reverse proxy `/call/` ภายใน
+VirtualHost `443` เดิมของ `sobmoeiservice.moph.go.th` และส่งต่อไปยัง SSO backend
+ที่ฟังเฉพาะ `127.0.0.1:8089` จึงไม่เพิ่ม VirtualHost `443` และไม่เปิด backend
+ออกสู่เครือข่ายภายนอก
 
 ## 1. เตรียมระบบ
 
@@ -57,12 +58,13 @@ chmod 600 .env
 เปิด `THAID_ENABLED=true` และ `MOPH_ID_ENABLED=true`
 เมื่อใส่ test credential ครบและพร้อมทดสอบ UAT เท่านั้น
 
-`APP_URL` และ callback URI ทุกระบบต้องใช้ HTTPS URL มาตรฐานโดยไม่ระบุ port เช่น:
+`APP_URL`, session path และ callback URI ต้องรวม public prefix `/call` เช่น:
 
 ```dotenv
-APP_URL=https://sso.example.go.th
-THAID_REDIRECT_URI=https://sso.example.go.th/api/callback/thaid
-HEALTH_ID_REDIRECT_URI=https://sso.example.go.th/api/callback/moph-id
+APP_URL=https://sobmoeiservice.moph.go.th/call
+SESSION_PATH=/call
+THAID_REDIRECT_URI=https://sobmoeiservice.moph.go.th/call/api/callback/thaid
+HEALTH_ID_REDIRECT_URI=https://sobmoeiservice.moph.go.th/call/api/callback/moph-id
 ```
 
 ตัวอย่าง callback เป็นรูปแบบอธิบายเท่านั้น ต้องใช้ path จริงที่ระบบรองรับ
@@ -124,10 +126,15 @@ sudo restorecon -Rv /var/www/sso-api
 
 sudo setsebool -P httpd_can_network_connect on
 sudo setsebool -P httpd_can_network_connect_db on
+
+sudo semanage port -a -t http_port_t -p tcp 8089
 ```
 
 อย่าปิด SELinux เพื่อแก้ permission ให้ตรวจ `ausearch`/`sealert`
 และปรับ label เฉพาะ path ที่จำเป็น
+
+หาก port `8089` มี `http_port_t` อยู่แล้ว ไม่ต้องเพิ่มซ้ำ ให้ตรวจด้วย
+`sudo semanage port -l | grep http_port_t`
 
 ## 5. เลือก Web server
 
@@ -136,44 +143,38 @@ sudo setsebool -P httpd_can_network_connect_db on
 ```bash
 sudo dnf install -y httpd mod_ssl
 sudo apachectl -S > /root/httpd-vhosts-before-sso.txt
-sudo grep -RIn "ServerName .*sso.example.go.th" /etc/httpd/conf /etc/httpd/conf.d
+sudo httpd -M | grep -E 'headers|proxy|proxy_http|rewrite'
+sudo cp -a /etc/httpd/conf.d/ssl.conf /root/ssl.conf.before-sso-call
 sudo cp deploy/almalinux9/httpd/sso-api.conf.example /etc/httpd/conf.d/sso-api.conf
-sudoedit /etc/httpd/conf.d/sso-api.conf
+sudo cp deploy/almalinux9/httpd/sso-api-proxy.inc.example \
+  /etc/httpd/conf.d/sso-api-proxy.inc
+sudoedit /etc/httpd/conf.d/ssl.conf
 sudo apachectl configtest
 sudo systemctl enable --now php-fpm
 sudo systemctl reload httpd
 ```
 
-แทน `sso.example.go.th` ด้วยโดเมนจริงก่อนตรวจชื่อซ้ำ หากพบว่า VirtualHost เดิม
-ประกาศ `ServerName` เดียวกันบน `*:443` ห้ามเพิ่มอีกตัว ให้หยุดและรวม configuration
-เข้ากับ VirtualHost เดิมก่อน
+เพิ่มบรรทัดต่อไปนี้ภายใน `<VirtualHost _default_:443>` ตัวแรกของ `ssl.conf`
+ก่อน `</VirtualHost>` เท่านั้น:
 
-template เพิ่มเฉพาะ `<VirtualHost *:443>` ที่ระบุ `ServerName` เฉพาะของ SSO
-ไม่ประกาศ `Listen 443`, wildcard `ServerAlias` หรือแก้ VirtualHost ของเว็บไซต์อื่น
-หลัง reload ให้ตรวจ `sudo apachectl -S` และยืนยันว่าแต่ละ hostname บน `*:443`
-ชี้ไปยังไฟล์ configuration ที่ถูกต้อง
-
-### Nginx
-
-```bash
-sudo dnf install -y nginx
-sudo cp deploy/almalinux9/nginx/sso-api.conf.example /etc/nginx/conf.d/sso-api.conf
-sudoedit /etc/nginx/conf.d/sso-api.conf
-sudo nginx -t
-sudo systemctl enable --now php-fpm nginx
+```apache
+IncludeOptional conf.d/sso-api-proxy.inc
 ```
 
-เลือกใช้เพียงหนึ่งแบบ ตรวจ socket `/run/php-fpm/www.sock`
-และสิทธิ์ `listen.acl_users` ใน `/etc/php-fpm.d/www.conf`
-ให้ web server ที่เลือกเข้าถึงได้
+ห้ามเพิ่ม VirtualHost `443` ใหม่ และห้ามใส่ include ใน VirtualHost ตัวที่สอง
+ไฟล์ include map เฉพาะ `/call/` ไป `http://127.0.0.1:8089/`
+เส้นทางอื่นจึงยังใช้ configuration เดิม
 
-ใช้ HTTPS service มาตรฐานของ firewall และไม่เปิด custom port:
+หลัง reload ให้เปรียบเทียบ VirtualHost และ listener:
 
 ```bash
-sudo firewall-cmd --permanent --add-service=https
-sudo firewall-cmd --reload
-sudo firewall-cmd --query-service=https
+sudo apachectl -S > /root/httpd-vhosts-after-sso.txt
+sudo diff -u /root/httpd-vhosts-before-sso.txt /root/httpd-vhosts-after-sso.txt
+sudo ss -lntp | grep 8089
 ```
+
+ต้องเห็น `127.0.0.1:8089` ไม่ใช่ `*:8089` และรายการ VirtualHost `443`
+ต้องไม่เพิ่มขึ้น ไม่ต้องเปิด port `8089` ใน firewalld หรือ WAF
 
 ## 6. สร้าง Admin และ cache
 
@@ -191,15 +192,21 @@ php artisan sso:check-installation --providers
 ```bash
 curl --fail --silent --show-error \
   --user-agent 'Sobmoei-SSO-HealthCheck/1.0' \
-  https://YOUR-DOMAIN/up
+  -H 'Host: sobmoeiservice.moph.go.th' \
+  http://127.0.0.1:8089/up
+curl --fail --silent --show-error \
+  --resolve sobmoeiservice.moph.go.th:443:127.0.0.1 \
+  --user-agent 'Sobmoei-SSO-HealthCheck/1.0' \
+  https://sobmoeiservice.moph.go.th/call/up
 curl --silent --show-error --output /dev/null \
   --write-out '%{http_code}\n' \
   --user-agent 'Sobmoei-SSO-HealthCheck/1.0' \
   -H 'Accept: application/json' \
-  https://YOUR-DOMAIN/api/v1/auth/me
+  https://sobmoeiservice.moph.go.th/call/api/v1/auth/me
 ```
 
-ผลที่คาดหวังคือ `/up` สำเร็จ และ `/auth/me` ตอบ `401`
+ผลที่คาดหวังคือ backend `/up` และ public `/call/up` สำเร็จ ส่วน
+`/call/api/v1/auth/me` ตอบ `401`
 เมื่อยังไม่ได้ส่ง Admin Bearer Token
 
 หลังจากนั้นทดสอบ login, Admin CRUD, ออก application API key และ
