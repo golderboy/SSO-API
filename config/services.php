@@ -36,10 +36,17 @@ return [
     ],
 
     'thaid' => [
+        'enabled' => (bool) env('THAID_ENABLED', false),
         'client_id' => env('THAID_CLIENT_ID'),
         'client_secret' => env('THAID_CLIENT_SECRET'),
         'redirect_uri' => env('THAID_REDIRECT_URI'),
         'issuer' => env('THAID_ISSUER'),
+        'authorization_url' => env('THAID_AUTHORIZATION_URL'),
+        'token_url' => env('THAID_TOKEN_URL'),
+        'introspection_url' => env('THAID_INTROSPECTION_URL'),
+        'revocation_url' => env('THAID_REVOCATION_URL'),
+        'discovery_url' => env('THAID_DISCOVERY_URL'),
+        'scopes' => env('THAID_SCOPES', 'pid name openid'),
     ],
 
     'health_id' => [
@@ -47,12 +54,23 @@ return [
         'client_secret' => env('HEALTH_ID_CLIENT_SECRET'),
         'redirect_uri' => env('HEALTH_ID_REDIRECT_URI'),
         'base_url' => env('HEALTH_ID_BASE_URL'),
+        'authorization_path' => env('HEALTH_ID_AUTHORIZATION_PATH', '/oauth/redirect'),
+        'token_path' => env('HEALTH_ID_TOKEN_PATH', '/api/v1/token'),
+        'public_key_path' => env('HEALTH_ID_PUBLIC_KEY_PATH', '/api/v1/oauth/public-key'),
     ],
 
     'provider_id' => [
+        'enabled' => (bool) env('MOPH_ID_ENABLED', false),
         'client_id' => env('PROVIDER_ID_CLIENT_ID'),
         'secret_key' => env('PROVIDER_ID_SECRET_KEY'),
         'base_url' => env('PROVIDER_ID_BASE_URL'),
+        'token_path' => env('PROVIDER_ID_TOKEN_PATH', '/api/v1/services/token'),
+        'profile_path' => env('PROVIDER_ID_PROFILE_PATH', '/api/v1/services/profile'),
+        'public_key_path' => env('PROVIDER_ID_PUBLIC_KEY_PATH', '/api/v1/services/public-key'),
     ],
 
+    'upstream_http' => [
+        'connect_timeout_seconds' => (int) env('UPSTREAM_CONNECT_TIMEOUT_SECONDS', 5),
+        'timeout_seconds' => (int) env('UPSTREAM_TIMEOUT_SECONDS', 15),
+    ],
 ];

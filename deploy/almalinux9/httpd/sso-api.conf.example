@@ -1,0 +1,40 @@
+<VirtualHost *:80>
+    ServerName CHANGE-ME.example.invalid
+    Redirect permanent / https://CHANGE-ME.example.invalid/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName CHANGE-ME.example.invalid
+    DocumentRoot /var/www/sso-api/public
+
+    SSLEngine on
+    SSLCertificateFile /etc/pki/tls/certs/CHANGE-ME.crt
+    SSLCertificateKeyFile /etc/pki/tls/private/CHANGE-ME.key
+
+    LimitRequestBody 65536
+    SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
+    <Directory /var/www/sso-api/public>
+        AllowOverride None
+        Options -Indexes +FollowSymLinks
+        Require all granted
+
+        RewriteEngine On
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteRule ^ index.php [L]
+    </Directory>
+
+    <FilesMatch "\.php$">
+        SetHandler "proxy:unix:/run/php-fpm/www.sock|fcgi://localhost"
+    </FilesMatch>
+
+    <LocationMatch "^/(?!\.well-known/)\.">
+        Require all denied
+    </LocationMatch>
+
+    Header always set Strict-Transport-Security "max-age=31536000"
+
+    ErrorLog logs/sso-api-error.log
+    CustomLog logs/sso-api-access.log combined
+</VirtualHost>

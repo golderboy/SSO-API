@@ -1,0 +1,71 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: test-root-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      APP_DEBUG: "false"
+      APP_URL: https://sso.example.test
+      CID_LOOKUP_KEY: testing-cid-lookup-key-32-bytes-minimum
+      AUDIT_HASH_KEY: testing-audit-hash-key-32-bytes-minimum
+      DB_CONNECTION: mariadb
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: sso
+      DB_USERNAME: root
+      DB_PASSWORD: test-root-password
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: curl, dom, fileinfo, intl, mbstring, openssl, pdo_mysql, xml, xmlwriter, zip
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Import MariaDB schema
+        run: mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password < database/schema/sso_mariadb.sql
+
+      - name: Verify migration inventory
+        run: php artisan migrate:status
+
+      - name: Test
+        run: php artisan test
+
+      - name: Check PHP style
+        run: vendor/bin/pint --test

@@ -1,0 +1,41 @@
+server {
+    listen 80;
+    server_name CHANGE-ME.example.invalid;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name CHANGE-ME.example.invalid;
+    root /var/www/sso-api/public;
+    index index.php;
+
+    ssl_certificate /etc/pki/tls/certs/CHANGE-ME.crt;
+    ssl_certificate_key /etc/pki/tls/private/CHANGE-ME.key;
+
+    client_max_body_size 64k;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location = /index.php {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param HTTP_AUTHORIZATION $http_authorization;
+        fastcgi_pass unix:/run/php-fpm/www.sock;
+        fastcgi_hide_header X-Powered-By;
+    }
+
+    location ~ \.php$ {
+        return 404;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+
+    access_log /var/log/nginx/sso-api-access.log;
+    error_log /var/log/nginx/sso-api-error.log;
+}

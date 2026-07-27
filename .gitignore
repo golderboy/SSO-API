@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.almalinux.example
 secrets/
 *.key
 *.pem

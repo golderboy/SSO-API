@@ -1,5 +1,9 @@
 # การติดตั้งบนเซิร์ฟเวอร์
 
+สำหรับ AlmaLinux 9 ให้ใช้
+[คู่มือติดตั้งเฉพาะระบบปฏิบัติการ](ALMALINUX_9_INSTALLATION.md)
+และ `.env.almalinux.example`
+
 ## Requirements
 
 - Linux หรือ Windows Server ที่รองรับ PHP 8.3

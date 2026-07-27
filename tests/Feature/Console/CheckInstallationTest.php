@@ -1,0 +1,63 @@
+<?php
+
+namespace Tests\Feature\Console;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class CheckInstallationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config([
+            'app.debug' => false,
+            'app.url' => 'https://sso.example.test',
+            'sso.cid_lookup_key' => str_repeat('c', 32),
+            'sso.audit_hash_key' => str_repeat('a', 32),
+        ]);
+    }
+
+    public function test_installation_check_passes_without_disabled_providers(): void
+    {
+        $this->artisan('sso:check-installation')
+            ->expectsOutputToContain('Installation check passed.')
+            ->assertSuccessful();
+    }
+
+    public function test_provider_check_fails_when_credentials_are_missing(): void
+    {
+        $this->artisan('sso:check-installation', ['--providers' => true])
+            ->expectsOutputToContain('Installation check failed.')
+            ->assertFailed();
+    }
+
+    public function test_provider_check_passes_when_both_credential_sets_exist(): void
+    {
+        config([
+            'services.thaid.client_id' => 'test-client',
+            'services.thaid.client_secret' => 'test-secret',
+            'services.thaid.redirect_uri' => 'https://sso.example.test/thaid/callback',
+            'services.thaid.issuer' => 'https://imauth.bora.dopa.go.th',
+            'services.thaid.authorization_url' => 'https://imauth.bora.dopa.go.th/auth',
+            'services.thaid.token_url' => 'https://imauth.bora.dopa.go.th/token',
+            'services.thaid.introspection_url' => 'https://imauth.bora.dopa.go.th/introspect',
+            'services.thaid.revocation_url' => 'https://imauth.bora.dopa.go.th/revoke',
+            'services.thaid.discovery_url' => 'https://imauth.bora.dopa.go.th/discovery',
+            'services.health_id.client_id' => 'test-health-client',
+            'services.health_id.client_secret' => 'test-health-secret',
+            'services.health_id.redirect_uri' => 'https://sso.example.test/moph/callback',
+            'services.health_id.base_url' => 'https://uat-moph.id.th',
+            'services.provider_id.client_id' => 'test-provider-client',
+            'services.provider_id.secret_key' => 'test-provider-secret',
+            'services.provider_id.base_url' => 'https://uat-provider.id.th',
+        ]);
+
+        $this->artisan('sso:check-installation', ['--providers' => true])
+            ->expectsOutputToContain('Installation check passed.')
+            ->assertSuccessful();
+    }
+}

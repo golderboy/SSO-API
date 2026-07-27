@@ -64,6 +64,21 @@ php artisan serve
 
 ห้าม commit `.env`, client secret, API key, private key, access token หรือ CID จริง
 
+## ติดตั้งบน AlmaLinux 9
+
+- ใช้ [.env.almalinux.example](.env.almalinux.example) เป็น template ของ `.env`
+- นำเข้า [MariaDB schema](database/schema/sso_mariadb.sql) สำหรับฐานข้อมูลใหม่
+- เลือก config ตัวอย่างสำหรับ
+  [Apache](deploy/almalinux9/httpd/sso-api.conf.example) หรือ
+  [Nginx](deploy/almalinux9/nginx/sso-api.conf.example)
+- ทำตาม [คู่มือติดตั้ง AlmaLinux 9](docs/ALMALINUX_9_INSTALLATION.md)
+
+ก่อนเปิดรับ traffic ให้รัน:
+
+```bash
+php artisan sso:check-installation --providers
+```
+
 ## ทดสอบ
 
 ```bash
