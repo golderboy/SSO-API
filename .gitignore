@@ -20,6 +20,7 @@ dist/
 build/
 coverage/
 .phpunit.cache/
+.phpunit.result.cache
 
 # Runtime data
 storage/logs/

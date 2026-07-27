@@ -1,44 +1,89 @@
-# SSO API - Sobmoei
+# Sobmoei SSO API
 
-โครงการเตรียมพัฒนาระบบ Single Sign-On (SSO) กลางสำหรับเว็บไซต์ของหน่วยงาน โดยแยกการยืนยันตัวตนจากผู้ให้บริการภายนอกออกจากการตรวจสิทธิ์ภายในตามผู้ใช้ แอปพลิเคชัน และหน่วยงาน
+API สำหรับจัดการบุคลากร แอปพลิเคชัน หน่วยงาน และสิทธิ์เข้าใช้งานเว็บไซต์
+พัฒนาด้วย PHP 8.3, Laravel 13 และ Laravel Sanctum
 
-## สถานะโครงการ
+## สถานะ
 
-### Planning / Architecture phase - ยังไม่พร้อมใช้งานจริง
+### Phase 1 พร้อมทดสอบ API และ Admin CRUD
 
-Repository นี้ยังไม่มี production code และยังไม่ควรนำไปติดตั้งบนเซิร์ฟเวอร์ จนกว่าจะตัดสินใจเรื่อง Identity Provider, วิธีจับคู่ CID, technology stack, รูปแบบ downstream SSO และโครงสร้าง production infrastructure
+ส่วนเชื่อมต่อ ThaID, Health ID, Provider ID และ downstream OIDC flow
+ยังอยู่ในแผนสำหรับเฟสถัดไป
 
-## หลักการสำคัญ
+## ความสามารถในเฟสนี้
 
-- ใช้ Authorization Code flow สำหรับเว็บไซต์ปลายทาง
-- ตรวจ callback URI แบบ exact match เพื่อป้องกัน open redirect
-- ไม่ส่ง upstream token, CID หรือข้อมูลส่วนบุคคลผ่าน URL
-- ตรวจสิทธิ์จากฐานข้อมูลภายในก่อนออก authorization code ของระบบ
-- ใช้ provider adapter เพื่อแยก ThaID, Health ID และ Provider ID
-- ไม่สร้าง OAuth/OIDC cryptographic engine เอง หากใช้ผลิตภัณฑ์หรือไลบรารีที่ผ่านการตรวจสอบได้
-- ไม่เก็บ secret, private key, token จริง หรือเอกสารภายในใน Git
+- Admin login/logout และ Bearer Token ด้วย Laravel Sanctum
+- CRUD บุคลากร หน่วยงาน แอปพลิเคชัน และ access grant
+- Application API key ที่สร้างโดยระบบหรือกำหนดเองได้
+- เก็บ API key เฉพาะ SHA-256 hash และแสดง plain text เพียงครั้งเดียว
+- เก็บ CID แบบ encrypted พร้อม keyed HMAC สำหรับ lookup
+- ตรวจสิทธิ์จาก CID + application + organization + role + validity period
+- UUID สำหรับ public resource identifiers
+- Audit log ที่ไม่บันทึก CID, token หรือ API key ดิบ
+- Rate limiting, generic authentication errors และ security headers
+- Automated tests สำหรับ authentication, CRUD, BOLA, key isolation และ revocation
+
+## API หลัก
+
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/logout`
+- `POST /api/v1/access/check`
+- `/api/v1/admin/users`
+- `/api/v1/admin/organizations`
+- `/api/v1/admin/applications`
+- `/api/v1/admin/access-grants`
+- `/api/v1/admin/audit-logs`
+
+รายละเอียด request และ response อยู่ใน [API v1](docs/API_V1.md)
+
+## Requirements
+
+- PHP 8.3 ขึ้นไป
+- Composer 2.8 ขึ้นไป
+- MariaDB/MySQL สำหรับ production
+- PHP extensions: ctype, curl, dom, fileinfo, filter, hash, intl, json,
+  mbstring, openssl, PDO, pdo_mysql, session, tokenizer, xml, xmlwriter และ zip
+
+## เริ่มใช้งานสำหรับพัฒนา
+
+```bash
+composer install
+copy .env.example .env
+php artisan key:generate
+```
+
+กำหนด `CID_LOOKUP_KEY`, `AUDIT_HASH_KEY` และ database credential ใน `.env`
+จากนั้นรัน:
+
+```bash
+php artisan migrate
+php artisan sso:create-admin
+php artisan serve
+```
+
+ห้าม commit `.env`, client secret, API key, private key, access token หรือ CID จริง
+
+## ทดสอบ
+
+```bash
+composer test
+php vendor/bin/pint --test
+composer audit --locked
+```
 
 ## เอกสาร
 
-- [ข้อค้นพบและข้อทักท้วง](docs/SSO_DISCOVERY.md)
-- [แผนสถาปัตยกรรม](docs/SSO_ARCHITECTURE.md)
+- [API v1](docs/API_V1.md)
+- [สถานะการพัฒนา](docs/PHASE_1_IMPLEMENTATION.md)
+- [ติดตั้งบนเซิร์ฟเวอร์](docs/SERVER_INSTALLATION.md)
+- [สถาปัตยกรรม](docs/SSO_ARCHITECTURE.md)
 - [แบบจำลองข้อมูล](docs/SSO_DATA_MODEL.md)
-- [ข้อกำหนดด้านความปลอดภัย](docs/SSO_SECURITY.md)
-- [กลยุทธ์การทดสอบ](docs/SSO_TEST_STRATEGY.md)
-- [แผนพัฒนา](docs/SSO_IMPLEMENTATION_PLAN.md)
-- [แนวทางติดตั้ง](docs/SSO_DEPLOYMENT.md)
+- [Security](docs/SSO_SECURITY.md)
+- [Test strategy](docs/SSO_TEST_STRATEGY.md)
 - [Decision gates](docs/SSO_DECISIONS.md)
-- [ร่าง OpenAPI](docs/SSO_API_SPEC.yaml)
 
 ## เอกสารต้นฉบับ
 
-เอกสาร API ต้นฉบับเป็นเอกสารภายในและไม่ถูกติดตามด้วย Git เนื่องจาก repository นี้เป็น public ผู้พัฒนาต้องได้รับสิทธิ์เข้าถึงเอกสารจากช่องทางที่หน่วยงานอนุมัติ
-
-## การเริ่มพัฒนา
-
-1. ตอบ decision gates ใน `docs/SSO_DECISIONS.md`
-2. เลือก downstream OIDC engine และ technology stack
-3. สร้าง threat model review และ data-protection review
-4. ทำ prototype กับ mock provider
-5. ทดสอบ contract กับ UAT โดยเก็บ credential ใน secret manager
-6. ผ่าน security และ deployment readiness gate ก่อน production
+PDF ของผู้ให้บริการยืนยันตัวตนเป็นเอกสารภายในและถูก ignore จาก Git
+Repository นี้เป็น public จึงห้ามเพิ่มเอกสารดังกล่าวกลับเข้ามา

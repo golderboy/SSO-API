@@ -1,129 +1,115 @@
 # แบบจำลองข้อมูล
 
-## ตารางหลัก
+Phase 1 ใช้ internal auto-increment ID สำหรับ foreign key และใช้ `public_id` แบบ UUID
+สำหรับ URL/API เพื่อป้องกันการเดาเลขลำดับข้อมูล
 
-### applications
+## users
 
-- `id` internal UUID
-- `client_id` unique public identifier
+- `public_id` UUID unique
 - `name`
-- `status`
-- `client_type`
-- `token_policy_id`
-- `created_at`, `updated_at`
+- `email` nullable unique
+- `password` nullable และ hash ด้วย password hasher ของ Laravel
+- `cid_hash` keyed HMAC-SHA256 สำหรับ lookup
+- `cid_encrypted` encrypted ด้วย `APP_KEY`
+- `is_active`
+- `is_super_admin`
+- `last_login_at`
+- timestamps และ soft delete
 
-### application_redirect_uris
+API Resource ไม่คืน password, CID, CID hash หรือ encrypted CID
 
+## organizations
+
+- `public_id` UUID unique
+- `hcode` unique
+- `name_th`, `name_en`
+- `is_active`
+- timestamps และ soft delete
+
+## applications
+
+- `public_id` UUID unique
+- `name`
+- `slug` unique
+- `base_url`
+- `require_organization_match`
+- `is_active`
+- timestamps และ soft delete
+
+## application_api_keys
+
+- `public_id` UUID unique
 - `application_id`
-- `redirect_uri`
-- `status`
-- unique `(application_id, redirect_uri)`
-
-ต้องเทียบ URI แบบ exact match หลัง canonicalization ที่กำหนดชัดเจน ห้ามใช้ SQL wildcard
-
-### provider_configs
-
-- `id`
-- `provider_key` unique
-- `provider_type`
-- `environment`
-- `issuer_or_base_url`
-- `secret_reference`
-- `status`
-- `version`
-
-เก็บเพียง secret reference ไม่เก็บ client secret ในตารางนี้
-
-### users
-
-- `id` internal UUID
-- `status`
-- `display_name`
-- `cid_lookup` nullable และต้องเป็น keyed HMAC หากจำเป็น
-- `cid_ciphertext` nullable เฉพาะ use case ที่ได้รับอนุมัติ
-- `created_at`, `updated_at`, `disabled_at`
-
-### external_identities
-
-- `id`
-- `user_id`
-- `provider_config_id`
-- `issuer`
-- `subject`
-- `provider_account_id`
-- `provider_hash_cid` nullable
-- unique `(issuer, subject)`
-
-### organizations
-
-- `id`
-- `hcode` nullable unique ตามแหล่งข้อมูล
-- `business_id` nullable
 - `name`
-- `status`
+- `key_prefix` สำหรับค้นหา candidate โดยไม่เก็บ key ดิบ
+- `key_hash` SHA-256 ของ high-entropy API key
+- `last_used_at`
+- `expires_at`
+- `revoked_at`
 
-### user_organizations
+Plain text API key แสดงเฉพาะตอนสร้างและไม่สามารถดึงย้อนหลัง
 
-- `user_id`
-- `organization_id`
-- `source`
-- `source_verified_at`
-- `valid_from`, `valid_until`
-- `status`
-- unique `(user_id, organization_id, source)`
+## access_grants
 
-### access_grants
-
-- `id`
+- `public_id` UUID unique
 - `user_id`
 - `application_id`
 - `organization_id` nullable
-- `role_id`
+- `role`
+- `permissions` JSON allowlist
+- `is_active`
 - `valid_from`, `valid_until`
-- `status`
-- `approved_by`
-- `approved_at`
+- `revoked_at`
+- `created_by`, `revoked_by`
+- timestamps
 
-### auth_transactions
+สิทธิ์มีผลเมื่อ user/application/organization active, grant active,
+ยังไม่ถูก revoke และอยู่ในช่วงเวลาที่กำหนด
 
-- `id`
-- hashed state/nonce/code verifier binding
-- `application_id`
-- `provider_config_id`
-- `redirect_uri_id`
-- `expires_at`
-- `consumed_at`
-- `result`
+## personal_access_tokens
 
-ข้อมูล transaction ต้องมีอายุสั้นและลบตาม retention policy
+ตารางของ Laravel Sanctum สำหรับ Admin Bearer Token
+กำหนด token expiration ผ่าน `SANCTUM_EXPIRATION_MINUTES`
 
-### sessions และ authorization_codes
+## audit_logs
 
-เก็บ identifier แบบ hash, expiration, consumed/revoked timestamp และ binding ที่จำเป็น ห้ามเก็บ raw bearer token
+- `public_id` UUID unique
+- `actor_user_id`
+- `action`
+- `auditable_type`, `auditable_id`
+- `target_public_id`
+- `ip_hash`, `user_agent_hash`
+- `context` JSON ที่ allowlist แล้ว
+- `created_at`
 
-### audit_events
+ไม่มี raw CID, access token, API key หรือ client secret
 
-- immutable event ID
-- timestamp
-- actor type และ pseudonymous actor ID
-- action, result, application ID, organization ID
-- correlation ID
-- source IP แบบลดความละเอียดตามนโยบาย
-- metadata ที่ allowlist แล้ว
+## ตาราง framework
 
-## Index และ constraint สำคัญ
+- `sessions`
+- `cache`, `cache_locks`
+- `jobs`, `job_batches`, `failed_jobs`
+- `password_reset_tokens`
 
-- unique issuer + subject
-- unique application + redirect URI
-- index grant ตาม user + application + status + validity
-- authorization code ต้อง atomic consume ได้ครั้งเดียว
-- foreign key ต้องป้องกัน orphan grant
-- soft delete ใช้กับข้อมูลที่ต้อง audit แต่ต้องมี retention และ purge job
+## Foreign key behavior
 
-## Decision required
+- API key และ access grant ถูก cascade เมื่อลบ parent จริง
+- organization ที่มี effective grant ไม่อนุญาตให้ลบผ่าน Admin API
+- การลบ application จะ revoke key และ grant ก่อน soft delete
+- การลบ user จะ revoke token และ grant ก่อน soft delete
 
-- ชนิดฐานข้อมูล
-- วิธี identity enrollment และ CID matching
-- การเก็บ raw CID จำเป็นหรือไม่
-- source of truth สำหรับ hcode
-- retention ของ transaction, session และ audit
+## งานฐานข้อมูลในเฟสถัดไป
+
+- external identities และ provider subject
+- provider configuration โดยเก็บเพียง secret reference
+- registered callback URI แบบ exact match
+- authentication transactions
+- downstream authorization codes และ sessions
+- organization membership จาก Provider ID
+
+## Decision ที่ยังค้าง
+
+- legal basis และ retention สำหรับ raw CID ที่เข้ารหัส
+- วิธีจับคู่ Provider ID `hash_cid`
+- source of truth และ synchronization policy ของ hcode
+- retention/purge policy ของ audit log

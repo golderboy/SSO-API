@@ -10,7 +10,7 @@
 | D-004 | ผู้ใช้หลายหน่วยงานเลือกหน่วยงานอย่างไร | กระทบ authorization | Decision required |
 | D-005 | เว็บไซต์ปลายทางรองรับ OIDC หรือมี legacy bridge | กำหนด downstream protocol | Decision required |
 | D-006 | เลือก OIDC server/broker ใด | หลีกเลี่ยงสร้าง security engine เอง | Blocker |
-| D-007 | ใช้ application framework และ database ใด | กำหนด implementation/deployment | Blocker |
+| D-007 | ใช้ application framework และ database ใด | กำหนด implementation/deployment | Decided: PHP 8.3 + Laravel 13 + MariaDB/MySQL |
 | D-008 | URL และ callback URI ของ application รุ่น pilot คืออะไร | ต้องทำ exact allowlist | Decision required |
 | D-009 | production topology, secret manager, cache และ HA เป็นอย่างไร | กำหนด operations | Decision required |
 | D-010 | source of truth ของ organization/hcode คือระบบใด | ป้องกันข้อมูลสิทธิ์ล้าสมัย | Decision required |
