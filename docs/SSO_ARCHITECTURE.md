@@ -55,6 +55,18 @@ sequenceDiagram
 - URL, client secret และ signing key ไม่รับจาก browser request
 - transaction ต้องผูก provider, client, redirect URI และ browser session
 
+## Provider boundary ที่ยืนยันแล้ว
+
+ระบบแบ่ง upstream API เป็น 2 logical sections:
+
+1. `THAID` ของกรมการปกครอง ใช้ credential และ callback ของ ThaID
+2. `MOPH_ID` ของกระทรวงสาธารณสุข เป็น flow เดียวที่ใช้ Health ID
+   สำหรับ authentication/token ก่อนแลก Provider ID token และอ่าน profile/organization
+
+แม้ `MOPH_ID` ต้องใช้ `HEALTH_ID_*` และ `PROVIDER_ID_*` คนละชุดทางเทคนิค
+แต่ต้องเปิด/ปิดและประเมินผลเป็น provider section เดียว ห้ามเลือก Provider ID
+โดยข้ามขั้น Health ID
+
 ## Trust boundaries
 
 - Browser ถึง SSO: untrusted input

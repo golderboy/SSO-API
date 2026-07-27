@@ -47,13 +47,13 @@ class CheckInstallationTest extends TestCase
             'services.thaid.introspection_url' => 'https://imauth.bora.dopa.go.th/introspect',
             'services.thaid.revocation_url' => 'https://imauth.bora.dopa.go.th/revoke',
             'services.thaid.discovery_url' => 'https://imauth.bora.dopa.go.th/discovery',
-            'services.health_id.client_id' => 'test-health-client',
-            'services.health_id.client_secret' => 'test-health-secret',
-            'services.health_id.redirect_uri' => 'https://sso.example.test/moph/callback',
-            'services.health_id.base_url' => 'https://uat-moph.id.th',
-            'services.provider_id.client_id' => 'test-provider-client',
-            'services.provider_id.secret_key' => 'test-provider-secret',
-            'services.provider_id.base_url' => 'https://uat-provider.id.th',
+            'services.moph_id.health_id.client_id' => 'test-health-client',
+            'services.moph_id.health_id.client_secret' => 'test-health-secret',
+            'services.moph_id.health_id.redirect_uri' => 'https://sso.example.test/moph/callback',
+            'services.moph_id.health_id.base_url' => 'https://uat-moph.id.th',
+            'services.moph_id.provider_id.client_id' => 'test-provider-client',
+            'services.moph_id.provider_id.secret_key' => 'test-provider-secret',
+            'services.moph_id.provider_id.base_url' => 'https://uat-provider.id.th',
         ]);
 
         $this->artisan('sso:check-installation', ['--providers' => true])

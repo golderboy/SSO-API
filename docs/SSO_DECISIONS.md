@@ -4,7 +4,7 @@
 
 | ID | คำถาม | เหตุผลที่เป็น gate | สถานะ |
 | --- | --- | --- | --- |
-| D-001 | รองรับ ThaID, Health ID, Provider ID หรือชุดใดในรุ่นแรก | กำหนด adapter และข้อมูล identity | Decision required |
+| D-001 | รองรับ provider ใดในรุ่นแรก | กำหนด adapter และข้อมูล identity | Decided: 2 ส่วน — ThaID และ MOPH ID (Health ID → Provider ID) |
 | D-002 | ใช้อะไรเป็นตัวผูกบุคคล และจับคู่ Provider ID hash CID อย่างไร | ป้องกันผูกสิทธิ์ผิดคน | Blocker |
 | D-003 | เก็บ raw CID หรือไม่ และมี legal basis/retention อย่างไร | กระทบ privacy และ schema | Blocker |
 | D-004 | ผู้ใช้หลายหน่วยงานเลือกหน่วยงานอย่างไร | กระทบ authorization | Decision required |

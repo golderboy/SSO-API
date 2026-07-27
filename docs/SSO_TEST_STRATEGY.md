@@ -14,7 +14,7 @@
 
 ### Integration tests
 
-- mock ThaID/Health ID/Provider ID adapter
+- mock ThaID adapter และ MOPH ID flow (Health ID → Provider ID)
 - database transaction และ concurrent code exchange
 - key rotation
 - provider timeout/retry/circuit breaker

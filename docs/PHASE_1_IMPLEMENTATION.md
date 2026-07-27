@@ -34,7 +34,7 @@
 ## ขอบเขตที่ยังไม่พัฒนา
 
 - ThaID callback และ token validation
-- Health ID และ Provider ID adapters
+- MOPH ID adapter ที่ทำ flow Health ID → Provider ID
 - Dynamic provider selection
 - Downstream OAuth/OIDC authorization-code server
 - Admin web user interface

@@ -7,7 +7,7 @@ API สำหรับจัดการบุคลากร แอปพลิ
 
 ### Phase 1 พร้อมทดสอบ API และ Admin CRUD
 
-ส่วนเชื่อมต่อ ThaID, Health ID, Provider ID และ downstream OIDC flow
+ส่วนเชื่อมต่อ ThaID, MOPH ID (Health ID → Provider ID) และ downstream OIDC flow
 ยังอยู่ในแผนสำหรับเฟสถัดไป
 
 ## ความสามารถในเฟสนี้

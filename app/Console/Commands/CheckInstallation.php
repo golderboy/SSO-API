@@ -232,15 +232,15 @@ class CheckInstallation extends Command
 
         $this->checkProviderGroup(
             'MOPH ID',
-            $requireProviders || (bool) config('services.provider_id.enabled'),
+            $requireProviders || (bool) config('services.moph_id.enabled'),
             [
-                'health_client_id' => config('services.health_id.client_id'),
-                'health_client_secret' => config('services.health_id.client_secret'),
-                'health_redirect_uri' => config('services.health_id.redirect_uri'),
-                'health_base_url' => config('services.health_id.base_url'),
-                'provider_client_id' => config('services.provider_id.client_id'),
-                'provider_secret_key' => config('services.provider_id.secret_key'),
-                'provider_base_url' => config('services.provider_id.base_url'),
+                'health_client_id' => config('services.moph_id.health_id.client_id'),
+                'health_client_secret' => config('services.moph_id.health_id.client_secret'),
+                'health_redirect_uri' => config('services.moph_id.health_id.redirect_uri'),
+                'health_base_url' => config('services.moph_id.health_id.base_url'),
+                'provider_client_id' => config('services.moph_id.provider_id.client_id'),
+                'provider_secret_key' => config('services.moph_id.provider_id.secret_key'),
+                'provider_base_url' => config('services.moph_id.provider_id.base_url'),
             ],
         );
     }

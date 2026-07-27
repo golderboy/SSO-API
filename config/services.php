@@ -49,24 +49,25 @@ return [
         'scopes' => env('THAID_SCOPES', 'pid name openid'),
     ],
 
-    'health_id' => [
-        'client_id' => env('HEALTH_ID_CLIENT_ID'),
-        'client_secret' => env('HEALTH_ID_CLIENT_SECRET'),
-        'redirect_uri' => env('HEALTH_ID_REDIRECT_URI'),
-        'base_url' => env('HEALTH_ID_BASE_URL'),
-        'authorization_path' => env('HEALTH_ID_AUTHORIZATION_PATH', '/oauth/redirect'),
-        'token_path' => env('HEALTH_ID_TOKEN_PATH', '/api/v1/token'),
-        'public_key_path' => env('HEALTH_ID_PUBLIC_KEY_PATH', '/api/v1/oauth/public-key'),
-    ],
-
-    'provider_id' => [
+    'moph_id' => [
         'enabled' => (bool) env('MOPH_ID_ENABLED', false),
-        'client_id' => env('PROVIDER_ID_CLIENT_ID'),
-        'secret_key' => env('PROVIDER_ID_SECRET_KEY'),
-        'base_url' => env('PROVIDER_ID_BASE_URL'),
-        'token_path' => env('PROVIDER_ID_TOKEN_PATH', '/api/v1/services/token'),
-        'profile_path' => env('PROVIDER_ID_PROFILE_PATH', '/api/v1/services/profile'),
-        'public_key_path' => env('PROVIDER_ID_PUBLIC_KEY_PATH', '/api/v1/services/public-key'),
+        'health_id' => [
+            'client_id' => env('HEALTH_ID_CLIENT_ID'),
+            'client_secret' => env('HEALTH_ID_CLIENT_SECRET'),
+            'redirect_uri' => env('HEALTH_ID_REDIRECT_URI'),
+            'base_url' => env('HEALTH_ID_BASE_URL'),
+            'authorization_path' => env('HEALTH_ID_AUTHORIZATION_PATH', '/oauth/redirect'),
+            'token_path' => env('HEALTH_ID_TOKEN_PATH', '/api/v1/token'),
+            'public_key_path' => env('HEALTH_ID_PUBLIC_KEY_PATH', '/api/v1/oauth/public-key'),
+        ],
+        'provider_id' => [
+            'client_id' => env('PROVIDER_ID_CLIENT_ID'),
+            'secret_key' => env('PROVIDER_ID_SECRET_KEY'),
+            'base_url' => env('PROVIDER_ID_BASE_URL'),
+            'token_path' => env('PROVIDER_ID_TOKEN_PATH', '/api/v1/services/token'),
+            'profile_path' => env('PROVIDER_ID_PROFILE_PATH', '/api/v1/services/profile'),
+            'public_key_path' => env('PROVIDER_ID_PUBLIC_KEY_PATH', '/api/v1/services/public-key'),
+        ],
     ],
 
     'upstream_http' => [

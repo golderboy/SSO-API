@@ -33,7 +33,7 @@
 
 - adapter interface
 - mock provider
-- ThaID/Health ID/Provider ID ตาม scope ที่อนุมัติ
+- 2 provider sections: ThaID และ MOPH ID (Health ID → Provider ID)
 - strict validation, timeout และ error mapping
 
 **Exit criteria:** contract test ผ่าน UAT โดยไม่บันทึก credential หรือ PII
