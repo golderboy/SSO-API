@@ -256,6 +256,7 @@ class CheckInstallation extends Command
             'oauth_access_tokens',
             'oauth_refresh_tokens',
             'external_identities',
+            'application_sso_configs',
             'migrations',
         ];
         $missingTables = array_values(array_filter(

@@ -57,6 +57,7 @@ Authorization: Bearer ADMIN_TOKEN
 | Personnel | `/admin/users` |
 | Organizations | `/admin/organizations` |
 | Applications | `/admin/applications` |
+| Application SSO client | `/admin/applications/{application}/sso-client` |
 | Access grants | `/admin/access-grants` |
 | Audit logs | `/admin/audit-logs` |
 
@@ -130,6 +131,49 @@ Admin สร้างหรือเลื่อนผู้ใช้เป็�
 
 เมื่อ revoke grant ระบบเก็บ record ไว้สำหรับ audit และตั้ง `revoked_at`
 แทนการลบประวัติออกจากฐานข้อมูล
+
+## Application SSO client
+
+เฉพาะ Admin สร้าง/rotate/revoke ได้ ส่วน SuperAdmin อ่าน configuration
+ที่ไม่ใช่ความลับได้
+
+### Create
+
+`POST /admin/applications/{application}/sso-client`
+
+```json
+{
+  "redirect_uris": [
+    "https://sobmoeiservice.moph.go.th/testsso/callback.php"
+  ],
+  "allowed_providers": [
+    "thaid",
+    "provider_id"
+  ]
+}
+```
+
+ระบบสร้าง confidential OAuth client ที่เปิดเฉพาะ
+`authorization_code` grant ไม่เปิด refresh token และคืน
+`client_secret` ครั้งเดียวด้วย `Cache-Control: no-store`
+
+### Read
+
+`GET /admin/applications/{application}/sso-client`
+
+ไม่คืน `client_secret`
+
+### Rotate secret
+
+`POST /admin/applications/{application}/sso-client/rotate`
+
+คืน secret ใหม่ครั้งเดียวและ secret เดิมใช้ไม่ได้ทันที
+
+### Revoke
+
+`DELETE /admin/applications/{application}/sso-client`
+
+revoke token ของ client และปิด client ก่อนลบ binding
 
 ## Application API key
 

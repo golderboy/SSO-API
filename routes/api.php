@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AccessCheckController;
 use App\Http\Controllers\Api\V1\Admin\AccessGrantController;
 use App\Http\Controllers\Api\V1\Admin\ApplicationApiKeyController;
 use App\Http\Controllers\Api\V1\Admin\ApplicationController;
+use App\Http\Controllers\Api\V1\Admin\ApplicationSsoClientController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController;
 use App\Http\Controllers\Api\V1\Admin\OrganizationController;
 use App\Http\Controllers\Api\V1\Admin\UserController;
@@ -37,6 +38,10 @@ Route::prefix('v1')->group(function (): void {
             Route::get('/organizations/{organization}', [OrganizationController::class, 'show']);
             Route::get('/applications', [ApplicationController::class, 'index']);
             Route::get('/applications/{application}', [ApplicationController::class, 'show']);
+            Route::get(
+                '/applications/{application}/sso-client',
+                [ApplicationSsoClientController::class, 'show'],
+            );
             Route::apiResource('access-grants', AccessGrantController::class);
 
             Route::get('/audit-logs', [AuditLogController::class, 'index']);
@@ -67,6 +72,18 @@ Route::prefix('v1')->group(function (): void {
                 Route::delete(
                     '/applications/{application}',
                     [ApplicationController::class, 'destroy'],
+                );
+                Route::post(
+                    '/applications/{application}/sso-client',
+                    [ApplicationSsoClientController::class, 'store'],
+                );
+                Route::post(
+                    '/applications/{application}/sso-client/rotate',
+                    [ApplicationSsoClientController::class, 'rotate'],
+                );
+                Route::delete(
+                    '/applications/{application}/sso-client',
+                    [ApplicationSsoClientController::class, 'destroy'],
                 );
 
                 Route::post(

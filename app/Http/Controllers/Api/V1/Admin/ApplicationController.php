@@ -7,6 +7,7 @@ use App\Http\Requests\Api\V1\Admin\StoreApplicationRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateApplicationRequest;
 use App\Http\Resources\ApplicationResource;
 use App\Models\Application;
+use App\Services\ApplicationSsoClientService;
 use App\Services\AuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -60,9 +61,20 @@ class ApplicationController extends Controller
     public function destroy(
         Request $request,
         Application $application,
+        ApplicationSsoClientService $ssoClients,
         AuditLogger $audit,
     ): Response {
-        DB::transaction(function () use ($application, $request): void {
+        DB::transaction(function () use (
+            $application,
+            $request,
+            $ssoClients,
+        ): void {
+            $ssoConfig = $application->ssoConfig()->first();
+
+            if ($ssoConfig !== null) {
+                $ssoClients->revoke($ssoConfig);
+            }
+
             $application->apiKeys()->whereNull('revoked_at')->update(['revoked_at' => now()]);
             $application->accessGrants()->whereNull('revoked_at')->update([
                 'is_active' => false,

@@ -270,6 +270,26 @@ CREATE TABLE IF NOT EXISTS `applications` (
     KEY `applications_is_active_index` (`is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `application_sso_configs` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `application_id` BIGINT UNSIGNED NOT NULL,
+    `oauth_client_id` CHAR(36) NOT NULL,
+    `allowed_providers` JSON NOT NULL,
+    `created_at` TIMESTAMP NULL,
+    `updated_at` TIMESTAMP NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `application_sso_configs_application_id_unique`
+        (`application_id`),
+    UNIQUE KEY `application_sso_configs_oauth_client_id_unique`
+        (`oauth_client_id`),
+    CONSTRAINT `application_sso_configs_application_id_foreign`
+        FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`)
+        ON DELETE CASCADE,
+    CONSTRAINT `application_sso_configs_oauth_client_id_foreign`
+        FOREIGN KEY (`oauth_client_id`) REFERENCES `oauth_clients` (`id`)
+        ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `application_api_keys` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `public_id` CHAR(36) NOT NULL,
@@ -380,4 +400,5 @@ INSERT IGNORE INTO `migrations` (`migration`, `batch`) VALUES
     ('2026_07_27_063322_create_oauth_access_tokens_table', 1),
     ('2026_07_27_063323_create_oauth_refresh_tokens_table', 1),
     ('2026_07_27_063324_add_provider_cid_hash_to_users_table', 1),
-    ('2026_07_27_063325_create_external_identities_table', 1);
+    ('2026_07_27_063325_create_external_identities_table', 1),
+    ('2026_07_27_063326_create_application_sso_configs_table', 1);

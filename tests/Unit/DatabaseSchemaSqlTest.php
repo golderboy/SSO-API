@@ -28,6 +28,7 @@ class DatabaseSchemaSqlTest extends TestCase
             'oauth_access_tokens',
             'oauth_refresh_tokens',
             'external_identities',
+            'application_sso_configs',
         ] as $table) {
             $this->assertStringContainsString(
                 "CREATE TABLE IF NOT EXISTS `{$table}`",
@@ -53,6 +54,7 @@ class DatabaseSchemaSqlTest extends TestCase
             '2026_07_27_063323_create_oauth_refresh_tokens_table',
             '2026_07_27_063324_add_provider_cid_hash_to_users_table',
             '2026_07_27_063325_create_external_identities_table',
+            '2026_07_27_063326_create_application_sso_configs_table',
         ] as $migration) {
             $this->assertStringContainsString($migration, $sql);
         }
@@ -167,6 +169,30 @@ class DatabaseSchemaSqlTest extends TestCase
         $this->assertStringNotContainsString('cid_encrypted', $upgrade);
         $this->assertStringContainsString(
             'DROP TABLE `external_identities`',
+            $rollback,
+        );
+    }
+
+    public function test_application_sso_client_upgrade_has_one_to_one_constraints(): void
+    {
+        $base = dirname(__DIR__, 2).'/database/schema/upgrades/';
+        $upgrade = (string) file_get_contents(
+            $base.'2026_07_27_063326_application_sso_clients.sql',
+        );
+        $rollback = (string) file_get_contents(
+            $base.'2026_07_27_063326_application_sso_clients_rollback.sql',
+        );
+
+        $this->assertStringContainsString(
+            'application_sso_configs_application_id_unique',
+            $upgrade,
+        );
+        $this->assertStringContainsString(
+            'application_sso_configs_oauth_client_id_unique',
+            $upgrade,
+        );
+        $this->assertStringContainsString(
+            'DROP TABLE `application_sso_configs`',
             $rollback,
         );
     }

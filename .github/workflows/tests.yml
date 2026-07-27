@@ -69,6 +69,8 @@ jobs:
       - name: Verify SQL rollbacks and upgrades
         run: |
           mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
+            < database/schema/upgrades/2026_07_27_063326_application_sso_clients_rollback.sql
+          mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
             < database/schema/upgrades/2026_07_27_063324_identity_mapping_rollback.sql
           mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
             < database/schema/upgrades/2026_07_27_063319_oauth_foundation_rollback.sql
@@ -88,6 +90,12 @@ jobs:
             < database/schema/upgrades/2026_07_27_063324_identity_mapping_rollback.sql
           mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
             < database/schema/upgrades/2026_07_27_063324_identity_mapping.sql
+          mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
+            < database/schema/upgrades/2026_07_27_063326_application_sso_clients.sql
+          mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
+            < database/schema/upgrades/2026_07_27_063326_application_sso_clients_rollback.sql
+          mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
+            < database/schema/upgrades/2026_07_27_063326_application_sso_clients.sql
           php artisan migrate:status
 
       - name: Generate test OAuth signing keys
