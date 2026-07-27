@@ -19,4 +19,17 @@ class PersonnelIdentityServiceTest extends TestCase
         $this->assertSame(64, strlen($hash));
         $this->assertStringNotContainsString($normalized, $hash);
     }
+
+    public function test_provider_hash_is_keyed_again_after_provider_sha256(): void
+    {
+        $service = app(PersonnelIdentityService::class);
+        $cid = '1000000000009';
+        $providerSha256 = hash('sha256', $cid);
+        $lookupHash = $service->hashProviderCidSha256($providerSha256);
+
+        $this->assertSame($service->hashProviderCid($cid), $lookupHash);
+        $this->assertSame(64, strlen($lookupHash));
+        $this->assertNotSame($providerSha256, $lookupHash);
+        $this->assertStringNotContainsString($cid, $lookupHash);
+    }
 }

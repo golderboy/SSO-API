@@ -2,6 +2,8 @@
 
 return [
     'cid_lookup_key' => env('CID_LOOKUP_KEY'),
+    'provider_cid_lookup_key' => env('PROVIDER_CID_LOOKUP_KEY'),
+    'external_subject_lookup_key' => env('EXTERNAL_SUBJECT_LOOKUP_KEY'),
     'audit_hash_key' => env('AUDIT_HASH_KEY'),
     // A fixed non-secret hash keeps failed login work comparable when no user exists.
     'dummy_password_hash' => '$2y$12$f4XzvojKA9YFBIFmb8yRd.ZyCbuiy9U8PRTce3HcbeN3h.BPttEQq',

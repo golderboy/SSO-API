@@ -39,6 +39,8 @@ class EnvironmentTemplateTest extends TestCase
             'APP_KEY',
             'DB_PASSWORD',
             'CID_LOOKUP_KEY',
+            'PROVIDER_CID_LOOKUP_KEY',
+            'EXTERNAL_SUBJECT_LOOKUP_KEY',
             'AUDIT_HASH_KEY',
             'PASSPORT_PRIVATE_KEY',
             'PASSPORT_PUBLIC_KEY',

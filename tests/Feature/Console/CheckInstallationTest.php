@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Console;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,6 +18,8 @@ class CheckInstallationTest extends TestCase
             'app.debug' => false,
             'app.url' => 'https://sso.example.test',
             'sso.cid_lookup_key' => str_repeat('c', 32),
+            'sso.provider_cid_lookup_key' => str_repeat('p', 32),
+            'sso.external_subject_lookup_key' => str_repeat('s', 32),
             'sso.audit_hash_key' => str_repeat('a', 32),
         ]);
     }
@@ -59,5 +62,28 @@ class CheckInstallationTest extends TestCase
         $this->artisan('sso:check-installation', ['--providers' => true])
             ->expectsOutputToContain('Installation check passed.')
             ->assertSuccessful();
+    }
+
+    public function test_installation_check_rejects_reused_lookup_key(): void
+    {
+        config([
+            'sso.provider_cid_lookup_key' => config('sso.cid_lookup_key'),
+        ]);
+
+        $this->artisan('sso:check-installation')
+            ->expectsOutputToContain('Installation check failed.')
+            ->assertFailed();
+    }
+
+    public function test_installation_check_requires_provider_hash_backfill(): void
+    {
+        User::factory()->create([
+            'cid_hash' => str_repeat('f', 64),
+            'provider_cid_hash' => null,
+        ]);
+
+        $this->artisan('sso:check-installation')
+            ->expectsOutputToContain('1 user record(s) require backfill')
+            ->assertFailed();
     }
 }

@@ -96,6 +96,10 @@ class CheckInstallation extends Command
     {
         $appKey = (string) config('app.key');
         $cidKey = (string) config('sso.cid_lookup_key');
+        $providerCidKey = (string) config('sso.provider_cid_lookup_key');
+        $externalSubjectKey = (string) config(
+            'sso.external_subject_lookup_key',
+        );
         $auditKey = (string) config('sso.audit_hash_key');
         $appUrl = (string) config('app.url');
         $urlHost = parse_url($appUrl, PHP_URL_HOST);
@@ -139,9 +143,35 @@ class CheckInstallation extends Command
             strlen($auditKey) >= 32 ? 'configured' : 'must contain at least 32 characters',
         );
         $this->record(
+            'PROVIDER_CID_LOOKUP_KEY',
+            strlen($providerCidKey) >= 32,
+            strlen($providerCidKey) >= 32
+                ? 'configured'
+                : 'must contain at least 32 characters',
+        );
+        $this->record(
+            'EXTERNAL_SUBJECT_LOOKUP_KEY',
+            strlen($externalSubjectKey) >= 32,
+            strlen($externalSubjectKey) >= 32
+                ? 'configured'
+                : 'must contain at least 32 characters',
+        );
+        $lookupKeys = [
+            $cidKey,
+            $providerCidKey,
+            $externalSubjectKey,
+            $auditKey,
+        ];
+        $configuredLookupKeys = array_filter(
+            $lookupKeys,
+            fn (string $key): bool => $key !== '',
+        );
+        $this->record(
             'Independent lookup keys',
-            $cidKey !== '' && $auditKey !== '' && ! hash_equals($cidKey, $auditKey),
-            'CID_LOOKUP_KEY and AUDIT_HASH_KEY must be different',
+            count($configuredLookupKeys) === count($lookupKeys)
+                && count(array_unique($configuredLookupKeys))
+                    === count($lookupKeys),
+            'all lookup and audit keys must be configured and different',
         );
         $this->record(
             'Session lifetime',
@@ -225,18 +255,39 @@ class CheckInstallation extends Command
             'oauth_auth_codes',
             'oauth_access_tokens',
             'oauth_refresh_tokens',
+            'external_identities',
             'migrations',
         ];
         $missingTables = array_values(array_filter(
             $requiredTables,
             fn (string $table): bool => ! Schema::hasTable($table),
         ));
+        $hasProviderCidHash = Schema::hasTable('users')
+            && Schema::hasColumn('users', 'provider_cid_hash');
 
         $this->record(
             'Database schema',
-            $missingTables === [],
-            $missingTables === [] ? 'required tables found' : 'missing: '.implode(', ', $missingTables),
+            $missingTables === [] && $hasProviderCidHash,
+            match (true) {
+                $missingTables !== [] => 'missing: '.implode(', ', $missingTables),
+                ! $hasProviderCidHash => 'missing: users.provider_cid_hash',
+                default => 'required tables and columns found',
+            },
         );
+
+        if ($missingTables === [] && $hasProviderCidHash) {
+            $missingProviderHashes = DB::table('users')
+                ->whereNotNull('cid_hash')
+                ->whereNull('provider_cid_hash')
+                ->count();
+            $this->record(
+                'Provider CID hash backfill',
+                $missingProviderHashes === 0,
+                $missingProviderHashes === 0
+                    ? 'complete'
+                    : "{$missingProviderHashes} user record(s) require backfill",
+            );
+        }
 
         if (app()->environment('production')) {
             $connectionName = DB::getDefaultConnection();

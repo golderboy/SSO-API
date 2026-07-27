@@ -10,6 +10,8 @@ Phase 1 ใช้ internal auto-increment ID สำหรับ foreign key แ�
 - `email` nullable unique
 - `password` nullable และ hash ด้วย password hasher ของ Laravel
 - `cid_hash` keyed HMAC-SHA256 สำหรับ lookup
+- `provider_cid_hash` keyed HMAC-SHA256 ของค่า SHA-256(CID) สำหรับจับคู่
+  `hash_cid` จาก Provider ID โดยไม่เก็บ unsalted SHA-256 ตรง ๆ
 - `cid_encrypted` encrypted ด้วย `APP_KEY`
 - `is_active`
 - `system_role`: `admin`, `super_admin` หรือ `user`
@@ -85,6 +87,21 @@ Plain text API key แสดงเฉพาะตอนสร้างและ�
 การแยกตารางนี้ทำให้ Admin Sanctum token และ downstream Passport token ใช้
 authentication model/guard คนละชุด
 
+## external_identities
+
+- `public_id` UUID unique
+- `user_id`
+- `provider`: `thaid` หรือ `provider_id`
+- `subject_hash`: keyed HMAC ของ provider + verified subject
+- `identity_match_hash`: keyed HMAC ที่ต้องตรงกับ hash ของ user
+- `linked_at`, `last_authenticated_at`
+- timestamps
+
+ไม่เก็บ ThaID `sub`, Provider ID `account_id`, PID หรือ `hash_cid` ตรง ๆ
+ระบบสร้าง link ได้เฉพาะเมื่อพบ `users` เดิมที่ active และค่า CID/hash ตรงแน่นอน
+ถ้าไม่พบ user จะปฏิเสธโดยไม่สร้างบัญชี และหาก subject เปลี่ยนแต่ CID เดิมถูก link
+แล้วจะปฏิเสธเพื่อให้ตรวจสอบ/ยืนยันใหม่
+
 ## ตาราง downstream OAuth
 
 - `oauth_clients`: client ID, client secret แบบ hash, exact redirect URI และ grant type
@@ -124,7 +141,6 @@ authentication model/guard คนละชุด
 
 ## งานฐานข้อมูลในเฟสถัดไป
 
-- external identities และ provider subject
 - provider configuration โดยเก็บเพียง secret reference
 - registered callback URI แบบ exact match
 - authentication transactions

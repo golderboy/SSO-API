@@ -27,6 +27,7 @@ class DatabaseSchemaSqlTest extends TestCase
             'oauth_auth_codes',
             'oauth_access_tokens',
             'oauth_refresh_tokens',
+            'external_identities',
         ] as $table) {
             $this->assertStringContainsString(
                 "CREATE TABLE IF NOT EXISTS `{$table}`",
@@ -50,6 +51,8 @@ class DatabaseSchemaSqlTest extends TestCase
             '2026_07_27_063321_create_oauth_auth_codes_table',
             '2026_07_27_063322_create_oauth_access_tokens_table',
             '2026_07_27_063323_create_oauth_refresh_tokens_table',
+            '2026_07_27_063324_add_provider_cid_hash_to_users_table',
+            '2026_07_27_063325_create_external_identities_table',
         ] as $migration) {
             $this->assertStringContainsString($migration, $sql);
         }
@@ -137,5 +140,34 @@ class DatabaseSchemaSqlTest extends TestCase
                 $rollback,
             );
         }
+    }
+
+    public function test_identity_mapping_uses_keyed_hash_columns_and_guarded_provider_values(): void
+    {
+        $base = dirname(__DIR__, 2).'/database/schema/upgrades/';
+        $upgrade = (string) file_get_contents(
+            $base.'2026_07_27_063324_identity_mapping.sql',
+        );
+        $rollback = (string) file_get_contents(
+            $base.'2026_07_27_063324_identity_mapping_rollback.sql',
+        );
+
+        $this->assertStringContainsString(
+            '`provider_cid_hash` VARCHAR(64)',
+            $upgrade,
+        );
+        $this->assertStringContainsString(
+            'CREATE TABLE `external_identities`',
+            $upgrade,
+        );
+        $this->assertStringContainsString(
+            "CHECK (`provider` IN ('thaid', 'provider_id'))",
+            $upgrade,
+        );
+        $this->assertStringNotContainsString('cid_encrypted', $upgrade);
+        $this->assertStringContainsString(
+            'DROP TABLE `external_identities`',
+            $rollback,
+        );
     }
 }

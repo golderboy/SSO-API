@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `email_verified_at` TIMESTAMP NULL,
     `password` VARCHAR(255) NULL,
     `cid_hash` VARCHAR(64) NULL,
+    `provider_cid_hash` VARCHAR(64) NULL,
     `cid_encrypted` TEXT NULL,
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
     `system_role` VARCHAR(20) NOT NULL DEFAULT 'user',
@@ -40,6 +41,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     UNIQUE KEY `users_public_id_unique` (`public_id`),
     UNIQUE KEY `users_email_unique` (`email`),
     UNIQUE KEY `users_cid_hash_unique` (`cid_hash`),
+    UNIQUE KEY `users_provider_cid_hash_unique` (`provider_cid_hash`),
     UNIQUE KEY `users_admin_slot_unique` (`admin_slot`),
     KEY `users_is_active_index` (`is_active`),
     KEY `users_system_role_index` (`system_role`),
@@ -157,6 +159,31 @@ CREATE TABLE IF NOT EXISTS `sso_subjects` (
     CONSTRAINT `sso_subjects_user_id_foreign`
         FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
         ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `external_identities` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `public_id` CHAR(36) NOT NULL,
+    `user_id` BIGINT UNSIGNED NOT NULL,
+    `provider` VARCHAR(20) NOT NULL,
+    `subject_hash` VARCHAR(64) NOT NULL,
+    `identity_match_hash` VARCHAR(64) NOT NULL,
+    `linked_at` TIMESTAMP NOT NULL,
+    `last_authenticated_at` TIMESTAMP NULL,
+    `created_at` TIMESTAMP NULL,
+    `updated_at` TIMESTAMP NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `external_identities_public_id_unique` (`public_id`),
+    UNIQUE KEY `external_identities_provider_subject_unique`
+        (`provider`, `subject_hash`),
+    UNIQUE KEY `external_identities_provider_match_unique`
+        (`provider`, `identity_match_hash`),
+    KEY `external_identities_user_id_foreign` (`user_id`),
+    CONSTRAINT `external_identities_user_id_foreign`
+        FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+        ON DELETE CASCADE,
+    CONSTRAINT `external_identities_provider_check`
+        CHECK (`provider` IN ('thaid', 'provider_id'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `oauth_clients` (
@@ -351,4 +378,6 @@ INSERT IGNORE INTO `migrations` (`migration`, `batch`) VALUES
     ('2026_07_27_063320_create_oauth_clients_table', 1),
     ('2026_07_27_063321_create_oauth_auth_codes_table', 1),
     ('2026_07_27_063322_create_oauth_access_tokens_table', 1),
-    ('2026_07_27_063323_create_oauth_refresh_tokens_table', 1);
+    ('2026_07_27_063323_create_oauth_refresh_tokens_table', 1),
+    ('2026_07_27_063324_add_provider_cid_hash_to_users_table', 1),
+    ('2026_07_27_063325_create_external_identities_table', 1);

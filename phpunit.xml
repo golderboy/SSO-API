@@ -25,6 +25,8 @@
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="CID_LOOKUP_KEY" value="testing-cid-lookup-key-32-bytes-minimum"/>
+        <env name="PROVIDER_CID_LOOKUP_KEY" value="testing-provider-cid-key-32-bytes-minimum"/>
+        <env name="EXTERNAL_SUBJECT_LOOKUP_KEY" value="testing-subject-key-32-bytes-minimum"/>
         <env name="AUDIT_HASH_KEY" value="testing-audit-hash-key-32-bytes-minimum"/>
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>

@@ -74,6 +74,18 @@ sequenceDiagram
 แต่ต้องเปิด/ปิดและประเมินผลเป็น provider section เดียว ห้ามเลือก Provider ID
 โดยข้ามขั้น Health ID
 
+## Identity mapping ที่ยืนยันแล้ว
+
+- ThaID: ตรวจ ID Token/introspection ก่อนใช้ `sub` และ `pid`
+- Provider ID: ตรวจ Health ID token, แลก Provider ID token และตรวจ profile
+  ก่อนใช้ `account_id` กับ `hash_cid`
+- `hash_cid` ตามเอกสารเป็น SHA-256(CID); ระบบ HMAC ค่านี้ซ้ำด้วย
+  `PROVIDER_CID_LOOKUP_KEY` ก่อนค้นฐานข้อมูล
+- external subject ทุก provider ถูก HMAC ด้วย `EXTERNAL_SUBJECT_LOOKUP_KEY`
+- ระบบไม่สร้าง `users` จาก upstream profile
+- link ใหม่เกิดได้เมื่อค่า CID/hash จับคู่ user เดิมแบบ exact เท่านั้น
+- subject ใหม่ที่ชนกับ CID/provider link เดิมต้องปฏิเสธและตรวจสอบด้วยคน
+
 ## Trust boundaries
 
 - Browser ถึง SSO: untrusted input

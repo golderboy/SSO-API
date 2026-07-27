@@ -6,8 +6,8 @@ info:
     name: All rights reserved
     identifier: LicenseRef-Proprietary
   description: >
-    Planning contract only. The final contract depends on downstream OIDC engine
-    and approved decision records. No production server URL is declared.
+    Planning contract for OAuth 2.0 Authorization Code + PKCE, userinfo, and
+    revocation. This phase does not claim full OpenID Connect conformance.
 servers:
   - url: /
     description: Relative URL; the production base URL is a decision gate
@@ -78,12 +78,14 @@ paths:
             type: string
         - name: code_challenge
           in: query
-          required: false
+          required: true
           schema:
             type: string
+            minLength: 43
+            maxLength: 128
         - name: code_challenge_method
           in: query
-          required: false
+          required: true
           schema:
             type: string
             const: S256

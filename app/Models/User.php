@@ -28,6 +28,7 @@ use Laravel\Sanctum\HasApiTokens;
     'remember_token',
     'cid_hash',
     'cid_encrypted',
+    'provider_cid_hash',
     'admin_slot',
 ])]
 class User extends Authenticatable
@@ -43,6 +44,11 @@ class User extends Authenticatable
     public function accessGrants(): HasMany
     {
         return $this->hasMany(AccessGrant::class);
+    }
+
+    public function externalIdentities(): HasMany
+    {
+        return $this->hasMany(ExternalIdentity::class);
     }
 
     public function ssoSubject(): HasOne
