@@ -36,10 +36,21 @@ Authorization: Bearer ADMIN_TOKEN
 
 ระบบ revoke token ที่ใช้เรียก request ปัจจุบัน
 
-## Admin CRUD
+## Administrative authorization
 
 ทุก endpoint ในส่วนนี้ต้องมี Bearer Token ที่มี ability `admin`
-และผู้ใช้ต้องเป็น super administrator ที่ยัง active
+และผู้ใช้ต้องเป็น Admin หรือ SuperAdmin ที่ยัง active
+
+| ความสามารถ | Admin | SuperAdmin |
+| --- | --- | --- |
+| จัดการ personnel | CRUD | อ่าน |
+| จัดการ organizations | CRUD | อ่าน |
+| จัดการ applications และ API keys | CRUD | อ่าน application |
+| จัดการ access grants | CRUD | CRUD |
+| อ่าน audit logs | อ่าน | อ่าน |
+
+ระบบมี Admin ได้หนึ่งบัญชี ส่วน SuperAdmin มีได้หลายบัญชี
+และไม่มีสิทธิสร้าง แก้ไข หรือลบ configuration ของระบบ
 
 | Resource | Endpoints |
 | --- | --- |
@@ -61,11 +72,15 @@ CRUD resource ใช้ UUID ใน URL ไม่ใช้เลขลำดั�
   "email": "personnel@example.test",
   "cid": "เลขประจำตัวประชาชนสำหรับส่งผ่าน TLS",
   "is_active": true,
-  "is_super_admin": false
+  "system_role": "user"
 }
 ```
 
 Response ไม่คืน CID, CID hash, encrypted CID หรือ password
+
+Admin สร้างหรือเลื่อนผู้ใช้เป็น `super_admin` ได้ แต่ไม่สามารถกำหนด
+`system_role=admin` ผ่าน CRUD API การสร้าง Admin คนแรกใช้คำสั่ง
+`php artisan sso:create-admin` เท่านั้น
 
 ### Create organization
 
@@ -188,7 +203,7 @@ Denied response ใช้เหตุผลกลาง `not_authorized`
 - `201` สร้างข้อมูลสำเร็จ
 - `204` revoke/delete สำเร็จ
 - `401` credential หรือ API key ไม่ถูกต้อง
-- `403` ไม่มีสิทธิ์ Admin
+- `403` ไม่มีสิทธิ์ตาม role matrix
 - `404` ไม่พบ resource หรือ resource ไม่อยู่ใน application ที่ระบุ
 - `409` ข้อมูลหรือ effective grant ซ้ำ
 - `422` validation หรือ business rule ไม่ผ่าน

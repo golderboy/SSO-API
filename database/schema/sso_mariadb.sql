@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS `users` (
     `cid_hash` VARCHAR(64) NULL,
     `cid_encrypted` TEXT NULL,
     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
-    `is_super_admin` TINYINT(1) NOT NULL DEFAULT 0,
+    `system_role` VARCHAR(20) NOT NULL DEFAULT 'user',
+    `admin_slot` TINYINT UNSIGNED NULL,
     `last_login_at` TIMESTAMP NULL,
     `remember_token` VARCHAR(100) NULL,
     `created_at` TIMESTAMP NULL,
@@ -39,8 +40,18 @@ CREATE TABLE IF NOT EXISTS `users` (
     UNIQUE KEY `users_public_id_unique` (`public_id`),
     UNIQUE KEY `users_email_unique` (`email`),
     UNIQUE KEY `users_cid_hash_unique` (`cid_hash`),
+    UNIQUE KEY `users_admin_slot_unique` (`admin_slot`),
     KEY `users_is_active_index` (`is_active`),
-    KEY `users_is_super_admin_index` (`is_super_admin`)
+    KEY `users_system_role_index` (`system_role`),
+    CONSTRAINT `users_system_role_check`
+        CHECK (
+            (`system_role` = 'admin' AND `admin_slot` = 1)
+            OR
+            (
+                `system_role` IN ('super_admin', 'user')
+                AND `admin_slot` IS NULL
+            )
+        )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `password_reset_tokens` (
@@ -271,4 +282,5 @@ INSERT IGNORE INTO `migrations` (`migration`, `batch`) VALUES
     ('2026_07_27_063314_create_applications_table', 1),
     ('2026_07_27_063315_create_application_api_keys_table', 1),
     ('2026_07_27_063316_create_access_grants_table', 1),
-    ('2026_07_27_063317_create_audit_logs_table', 1);
+    ('2026_07_27_063317_create_audit_logs_table', 1),
+    ('2026_07_27_063318_replace_super_admin_flag_with_system_role', 1);

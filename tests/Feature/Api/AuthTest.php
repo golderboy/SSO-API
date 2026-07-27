@@ -11,9 +11,9 @@ class AuthTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_super_admin_can_login_and_logout(): void
+    public function test_admin_can_login_and_logout(): void
     {
-        $admin = User::factory()->superAdmin()->create([
+        $admin = User::factory()->admin()->create([
             'email' => 'admin@example.test',
             'password' => 'SecurePassword123!',
         ]);
@@ -50,7 +50,22 @@ class AuthTest extends TestCase
             ->assertUnauthorized();
     }
 
-    public function test_login_uses_generic_error_for_non_admin_and_wrong_password(): void
+    public function test_super_admin_can_login(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create([
+            'email' => 'grants@example.test',
+            'password' => 'SecurePassword123!',
+        ]);
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => $superAdmin->email,
+            'password' => 'SecurePassword123!',
+            'device_name' => 'phpunit',
+        ])->assertOk()
+            ->assertJsonPath('data.user.system_role', 'super_admin');
+    }
+
+    public function test_login_uses_generic_error_for_non_administrative_user_and_wrong_password(): void
     {
         $user = User::factory()->create([
             'email' => 'personnel@example.test',
@@ -63,7 +78,7 @@ class AuthTest extends TestCase
             'device_name' => 'phpunit',
         ])->assertUnauthorized()->assertJsonPath('message', 'Invalid credentials.');
 
-        $admin = User::factory()->superAdmin()->create([
+        $admin = User::factory()->admin()->create([
             'email' => 'admin@example.test',
             'password' => 'SecurePassword123!',
         ]);
@@ -83,7 +98,7 @@ class AuthTest extends TestCase
 
     public function test_login_normalizes_email_case_and_whitespace(): void
     {
-        User::factory()->superAdmin()->create([
+        User::factory()->admin()->create([
             'email' => 'admin@example.test',
             'password' => 'SecurePassword123!',
         ]);

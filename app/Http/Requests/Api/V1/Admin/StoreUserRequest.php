@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
+use App\Enums\SystemRole;
 use App\Rules\ThaiCitizenId;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class StoreUserRequest extends FormRequest
@@ -35,7 +37,7 @@ class StoreUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'nullable',
-                'required_if:is_super_admin,true',
+                'required_if:system_role,super_admin',
                 'email:rfc',
                 'max:255',
                 'unique:users,email',
@@ -43,13 +45,20 @@ class StoreUserRequest extends FormRequest
             'cid' => ['required', 'string', 'max:32', new ThaiCitizenId],
             'password' => [
                 'nullable',
-                'required_if:is_super_admin,true',
+                'required_if:system_role,super_admin',
                 'max:255',
                 'confirmed',
                 Password::min(12)->mixedCase()->numbers()->symbols(),
             ],
             'is_active' => ['sometimes', 'boolean'],
-            'is_super_admin' => ['sometimes', 'boolean'],
+            'system_role' => [
+                'sometimes',
+                Rule::in([
+                    SystemRole::User->value,
+                    SystemRole::SuperAdmin->value,
+                ]),
+            ],
+            'is_super_admin' => ['prohibited'],
         ];
     }
 }

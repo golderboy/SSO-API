@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\SystemRole;
 use App\Models\User;
 use App\Rules\ThaiCitizenId;
 use App\Services\PersonnelIdentityService;
@@ -19,7 +20,7 @@ use Illuminate\Validation\Rules\Password;
     {--email= : Administrator email}
     {--name= : Administrator name}
     {--promote-existing : Promote the active user matching the entered CID}')]
-#[Description('Create the initial SSO super administrator interactively')]
+#[Description('Create the single highest-privilege SSO Admin interactively')]
 class CreateSuperAdmin extends Command
 {
     public function handle(PersonnelIdentityService $identity): int
@@ -43,6 +44,17 @@ class CreateSuperAdmin extends Command
         $existingUser = User::withTrashed()
             ->where('cid_hash', $identity->hash($cid))
             ->first();
+        $currentAdmin = User::withTrashed()
+            ->where('system_role', SystemRole::Admin->value)
+            ->first();
+
+        if ($currentAdmin !== null && ! $currentAdmin->is($existingUser)) {
+            $this->error(
+                'An Admin account already exists. No changes were made.',
+            );
+
+            return self::FAILURE;
+        }
 
         if ($existingUser !== null && ! $this->option('promote-existing')) {
             $this->error(
@@ -107,7 +119,7 @@ class CreateSuperAdmin extends Command
                     'email' => $email,
                     'password' => $password,
                     'is_active' => true,
-                    'is_super_admin' => true,
+                    'system_role' => SystemRole::Admin,
                 ]);
                 $identity->setCid($user, $cid);
                 $user->save();
@@ -126,7 +138,7 @@ class CreateSuperAdmin extends Command
 
         $action = $existingUser === null ? 'created' : 'promoted';
         $this->info(
-            "Super administrator {$action}. "
+            "Admin {$action}. "
             .'Use POST /api/v1/auth/login to obtain a token.',
         );
 

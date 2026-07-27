@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\SystemRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -18,10 +19,16 @@ use Laravel\Sanctum\HasApiTokens;
     'email',
     'password',
     'is_active',
-    'is_super_admin',
+    'system_role',
     'last_login_at',
 ])]
-#[Hidden(['password', 'remember_token', 'cid_hash', 'cid_encrypted'])]
+#[Hidden([
+    'password',
+    'remember_token',
+    'cid_hash',
+    'cid_encrypted',
+    'admin_slot',
+])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -37,6 +44,35 @@ class User extends Authenticatable
         return $this->hasMany(AccessGrant::class);
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->system_role === SystemRole::Admin;
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->system_role === SystemRole::SuperAdmin;
+    }
+
+    public function isAdministrative(): bool
+    {
+        return $this->system_role?->isAdministrative() ?? false;
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (User $user): void {
+            $role = $user->system_role === null
+                ? SystemRole::User
+                : ($user->system_role instanceof SystemRole
+                ? $user->system_role
+                : SystemRole::from((string) $user->system_role));
+
+            $user->system_role = $role;
+            $user->admin_slot = $role === SystemRole::Admin ? 1 : null;
+        });
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -49,7 +85,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'cid_encrypted' => 'encrypted',
             'is_active' => 'boolean',
-            'is_super_admin' => 'boolean',
+            'system_role' => SystemRole::class,
             'last_login_at' => 'datetime',
         ];
     }

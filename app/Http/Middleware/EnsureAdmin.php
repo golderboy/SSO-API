@@ -6,19 +6,17 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureSuperAdmin
+class EnsureAdmin
 {
     /**
-     * Handle an incoming request.
-     *
-     * @param  Closure(Request): (Response)  $next
+     * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
 
-        if ($user === null || ! $user->is_active || ! $user->is_super_admin) {
-            abort(403, 'Administrator permission is required.');
+        if ($user === null || ! $user->is_active || ! $user->isAdmin()) {
+            abort(403, 'Admin permission is required.');
         }
 
         return $next($request);

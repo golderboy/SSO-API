@@ -24,29 +24,60 @@ Route::prefix('v1')->group(function (): void {
     Route::middleware([
         'auth:sanctum',
         'abilities:admin',
-        'super.admin',
+        'system.administrative',
         'throttle:admin-api',
     ])->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
 
         Route::prefix('admin')->group(function (): void {
-            Route::apiResource('users', UserController::class);
-            Route::apiResource('organizations', OrganizationController::class);
-            Route::apiResource('applications', ApplicationController::class);
+            Route::get('/users', [UserController::class, 'index']);
+            Route::get('/users/{user}', [UserController::class, 'show']);
+            Route::get('/organizations', [OrganizationController::class, 'index']);
+            Route::get('/organizations/{organization}', [OrganizationController::class, 'show']);
+            Route::get('/applications', [ApplicationController::class, 'index']);
+            Route::get('/applications/{application}', [ApplicationController::class, 'show']);
             Route::apiResource('access-grants', AccessGrantController::class);
-
-            Route::post(
-                '/applications/{application}/api-keys',
-                [ApplicationApiKeyController::class, 'store'],
-            );
-            Route::delete(
-                '/applications/{application}/api-keys/{apiKey}',
-                [ApplicationApiKeyController::class, 'destroy'],
-            );
 
             Route::get('/audit-logs', [AuditLogController::class, 'index']);
             Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show']);
+
+            Route::middleware('system.admin')->group(function (): void {
+                Route::post('/users', [UserController::class, 'store']);
+                Route::match(['put', 'patch'], '/users/{user}', [UserController::class, 'update']);
+                Route::delete('/users/{user}', [UserController::class, 'destroy']);
+
+                Route::post('/organizations', [OrganizationController::class, 'store']);
+                Route::match(
+                    ['put', 'patch'],
+                    '/organizations/{organization}',
+                    [OrganizationController::class, 'update'],
+                );
+                Route::delete(
+                    '/organizations/{organization}',
+                    [OrganizationController::class, 'destroy'],
+                );
+
+                Route::post('/applications', [ApplicationController::class, 'store']);
+                Route::match(
+                    ['put', 'patch'],
+                    '/applications/{application}',
+                    [ApplicationController::class, 'update'],
+                );
+                Route::delete(
+                    '/applications/{application}',
+                    [ApplicationController::class, 'destroy'],
+                );
+
+                Route::post(
+                    '/applications/{application}/api-keys',
+                    [ApplicationApiKeyController::class, 'store'],
+                );
+                Route::delete(
+                    '/applications/{application}/api-keys/{apiKey}',
+                    [ApplicationApiKeyController::class, 'destroy'],
+                );
+            });
         });
     });
 });

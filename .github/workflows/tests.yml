@@ -64,6 +64,17 @@ jobs:
       - name: Verify migration inventory
         run: php artisan migrate:status
 
+      - name: Verify latest rollback and SQL upgrade
+        run: |
+          php artisan migrate:rollback --step=1 --force
+          mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
+            < database/schema/upgrades/2026_07_27_063318_system_roles.sql
+          mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
+            < database/schema/upgrades/2026_07_27_063318_system_roles_rollback.sql
+          mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
+            < database/schema/upgrades/2026_07_27_063318_system_roles.sql
+          php artisan migrate:status
+
       - name: Test
         run: php artisan test
 

@@ -24,7 +24,7 @@
 | API2 Broken Authentication | Sanctum, strong password rule, token expiry, generic errors, dummy hash verification |
 | API3 Broken Object Property Authorization | Form Request allowlist และ API Resources |
 | API4 Unrestricted Resource Consumption | Pagination cap, field length cap, layered rate limit |
-| API5 Broken Function Level Authorization | `auth:sanctum`, token ability และ super-admin middleware |
+| API5 Broken Function Level Authorization | `auth:sanctum`, token ability และ Admin/SuperAdmin role middleware |
 | API6 Sensitive Business Flows | Audit log และ API key lifecycle |
 | API7 SSRF | Provider URL มาจาก trusted environment และ `base_url` ยังไม่ถูก dereference |
 | API8 Security Misconfiguration | `.env.example`, debug off, security headers |

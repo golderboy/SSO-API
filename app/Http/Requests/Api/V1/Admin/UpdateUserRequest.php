@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\V1\Admin;
 
+use App\Enums\SystemRole;
 use App\Rules\ThaiCitizenId;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -53,7 +54,14 @@ class UpdateUserRequest extends FormRequest
                 Password::min(12)->mixedCase()->numbers()->symbols(),
             ],
             'is_active' => ['sometimes', 'boolean'],
-            'is_super_admin' => ['sometimes', 'boolean'],
+            'system_role' => [
+                'sometimes',
+                Rule::in([
+                    SystemRole::User->value,
+                    SystemRole::SuperAdmin->value,
+                ]),
+            ],
+            'is_super_admin' => ['prohibited'],
         ];
     }
 
@@ -65,15 +73,19 @@ class UpdateUserRequest extends FormRequest
         return [
             function (Validator $validator): void {
                 $user = $this->route('user');
-                $willBeAdmin = $this->exists('is_super_admin')
-                    ? $this->boolean('is_super_admin')
-                    : (bool) $user?->is_super_admin;
+                $requestedRole = $this->exists('system_role')
+                    ? (string) $this->input('system_role')
+                    : $user?->system_role?->value;
+                $requiresCredentials = in_array($requestedRole, [
+                    SystemRole::Admin->value,
+                    SystemRole::SuperAdmin->value,
+                ], true);
                 $email = $this->exists('email') ? $this->input('email') : $user?->email;
                 $hasPassword = $this->exists('password')
                     ? is_string($this->input('password')) && $this->input('password') !== ''
                     : $user?->password !== null;
 
-                if (! $willBeAdmin) {
+                if (! $requiresCredentials) {
                     return;
                 }
 

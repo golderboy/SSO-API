@@ -12,11 +12,16 @@ Phase 1 ใช้ internal auto-increment ID สำหรับ foreign key แ�
 - `cid_hash` keyed HMAC-SHA256 สำหรับ lookup
 - `cid_encrypted` encrypted ด้วย `APP_KEY`
 - `is_active`
-- `is_super_admin`
+- `system_role`: `admin`, `super_admin` หรือ `user`
+- `admin_slot`: ค่า `1` เฉพาะ Admin และ `NULL` สำหรับ role อื่น
 - `last_login_at`
 - timestamps และ soft delete
 
 API Resource ไม่คืน password, CID, CID hash หรือ encrypted CID
+
+`admin_slot` มี unique constraint และทำงานร่วมกับ check constraint เพื่อบังคับ
+ให้มี Admin ได้ไม่เกินหนึ่งบัญชี โดย Admin ทำได้ทุกอย่าง ส่วน SuperAdmin
+จัดการ access grant และอ่านข้อมูลอ้างอิง/audit เท่านั้น
 
 ## organizations
 
@@ -110,6 +115,12 @@ Plain text API key แสดงเฉพาะตอนสร้างและ�
 ## Decision ที่ยังค้าง
 
 - legal basis และ retention สำหรับ raw CID ที่เข้ารหัส
-- วิธีจับคู่ Provider ID `hash_cid`
 - source of truth และ synchronization policy ของ hcode
 - retention/purge policy ของ audit log
+
+## Decision ที่ยืนยันแล้ว
+
+- ThaID ใช้ keyed HMAC ของ PID ที่ตรวจสอบแล้วเพื่อจับคู่ `cid_hash`
+- Provider ID ใช้ keyed HMAC อีกชุดครอบ `hash_cid` ที่ตรวจสอบรูปแบบแล้ว
+- ThaID ไม่มี organization claim จึงเลือกได้เฉพาะ local effective access grant
+- Provider ID ใช้ intersection ระหว่าง provider organizations กับ local grants

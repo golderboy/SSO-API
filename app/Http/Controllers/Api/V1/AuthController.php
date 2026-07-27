@@ -23,7 +23,7 @@ class AuthController extends Controller
         if (
             $user === null
             || ! $user->is_active
-            || ! $user->is_super_admin
+            || ! $user->isAdministrative()
             || ! $passwordIsValid
         ) {
             $audit->log('admin.login_failed');

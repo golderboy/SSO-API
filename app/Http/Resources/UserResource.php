@@ -20,7 +20,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'has_cid' => $this->cid_hash !== null,
             'is_active' => $this->is_active,
-            'is_super_admin' => $this->is_super_admin,
+            'system_role' => $this->system_role->value,
             'last_login_at' => $this->last_login_at,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
+use App\Enums\SystemRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Admin\StoreUserRequest;
 use App\Http\Requests\Api\V1\Admin\UpdateUserRequest;
@@ -55,7 +56,7 @@ class UserController extends Controller
                 'email' => $validated['email'] ?? null,
                 'password' => $validated['password'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
-                'is_super_admin' => $validated['is_super_admin'] ?? false,
+                'system_role' => $validated['system_role'] ?? SystemRole::User->value,
             ]);
             $identity->setCid($user, $validated['cid']);
             $user->save();
@@ -95,9 +96,14 @@ class UserController extends Controller
         if (
             $request->user()->is($user)
             && (($validated['is_active'] ?? true) === false
-                || ($validated['is_super_admin'] ?? true) === false)
+                || (isset($validated['system_role'])
+                    && $validated['system_role'] !== SystemRole::Admin->value))
         ) {
             abort(422, 'You cannot disable or demote your own administrator account.');
+        }
+
+        if ($user->isAdmin() && ! $request->user()->is($user)) {
+            abort(422, 'The Admin account cannot be modified by another account.');
         }
 
         DB::transaction(function () use ($validated, $user, $identity): void {
@@ -112,7 +118,7 @@ class UserController extends Controller
             if (
                 array_key_exists('password', $validated)
                 || ! $user->is_active
-                || ! $user->is_super_admin
+                || ! $user->isAdministrative()
             ) {
                 $user->tokens()->delete();
             }
@@ -127,6 +133,10 @@ class UserController extends Controller
     {
         if ($request->user()->is($user)) {
             abort(422, 'You cannot delete your own administrator account.');
+        }
+
+        if ($user->isAdmin()) {
+            abort(422, 'The Admin account cannot be deleted.');
         }
 
         DB::transaction(function () use ($user): void {

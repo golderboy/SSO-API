@@ -2,7 +2,8 @@
 
 use App\Http\Middleware\AddApiSecurityHeaders;
 use App\Http\Middleware\AuthenticateApplicationApiKey;
-use App\Http\Middleware\EnsureSuperAdmin;
+use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureAdministrativeUser;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -34,7 +35,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'application.key' => AuthenticateApplicationApiKey::class,
             'abilities' => CheckAbilities::class,
             'ability' => CheckForAnyAbility::class,
-            'super.admin' => EnsureSuperAdmin::class,
+            'system.admin' => EnsureAdmin::class,
+            'system.administrative' => EnsureAdministrativeUser::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

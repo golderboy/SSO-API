@@ -13,7 +13,7 @@ class CreateSuperAdminTest extends TestCase
     use CreatesSyntheticCid;
     use RefreshDatabase;
 
-    public function test_command_creates_super_administrator(): void
+    public function test_command_creates_single_admin(): void
     {
         $cid = $this->syntheticCid();
 
@@ -25,7 +25,7 @@ class CreateSuperAdminTest extends TestCase
             ->expectsQuestion('Password (minimum 12 characters)', 'SecurePassword123!')
             ->expectsQuestion('Confirm password', 'SecurePassword123!')
             ->expectsOutput(
-                'Super administrator created. '
+                'Admin created. '
                 .'Use POST /api/v1/auth/login to obtain a token.',
             )
             ->assertSuccessful();
@@ -33,7 +33,8 @@ class CreateSuperAdminTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'admin@example.test',
             'is_active' => true,
-            'is_super_admin' => true,
+            'system_role' => 'admin',
+            'admin_slot' => 1,
         ]);
     }
 
@@ -66,7 +67,7 @@ class CreateSuperAdminTest extends TestCase
         $existingUser = User::factory()->create([
             'email' => 'personnel@example.test',
             'is_active' => true,
-            'is_super_admin' => false,
+            'system_role' => 'user',
         ]);
         app(PersonnelIdentityService::class)->setCid($existingUser, $cid);
         $existingUser->save();
@@ -81,7 +82,7 @@ class CreateSuperAdminTest extends TestCase
             ->expectsQuestion('Password (minimum 12 characters)', 'SecurePassword123!')
             ->expectsQuestion('Confirm password', 'SecurePassword123!')
             ->expectsOutput(
-                'Super administrator promoted. '
+                'Admin promoted. '
                 .'Use POST /api/v1/auth/login to obtain a token.',
             )
             ->assertSuccessful();
@@ -91,9 +92,26 @@ class CreateSuperAdminTest extends TestCase
         $this->assertSame('Promoted Administrator', $existingUser->name);
         $this->assertSame('promoted@example.test', $existingUser->email);
         $this->assertTrue($existingUser->is_active);
-        $this->assertTrue($existingUser->is_super_admin);
+        $this->assertTrue($existingUser->isAdmin());
         $this->assertDatabaseMissing('personal_access_tokens', [
             'tokenable_id' => $existingUser->id,
+        ]);
+    }
+
+    public function test_command_refuses_to_create_a_second_admin(): void
+    {
+        User::factory()->admin()->create();
+
+        $this->artisan('sso:create-admin', [
+            '--name' => 'Second Administrator',
+            '--email' => 'second@example.test',
+        ])
+            ->expectsQuestion('Thai citizen ID (input is hidden)', $this->syntheticCid())
+            ->expectsOutput('An Admin account already exists. No changes were made.')
+            ->assertFailed();
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'second@example.test',
         ]);
     }
 }

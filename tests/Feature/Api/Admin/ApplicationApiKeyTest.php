@@ -14,7 +14,7 @@ class ApplicationApiKeyTest extends TestCase
 
     public function test_admin_can_supply_key_and_plain_text_is_returned_once(): void
     {
-        Sanctum::actingAs(User::factory()->superAdmin()->create(), ['admin']);
+        Sanctum::actingAs(User::factory()->admin()->create(), ['admin']);
         $application = Application::factory()->create();
         $plainTextKey = str_repeat('z', 64);
 
@@ -43,7 +43,7 @@ class ApplicationApiKeyTest extends TestCase
 
     public function test_duplicate_key_is_rejected_and_cross_application_revoke_is_hidden(): void
     {
-        Sanctum::actingAs(User::factory()->superAdmin()->create(), ['admin']);
+        Sanctum::actingAs(User::factory()->admin()->create(), ['admin']);
         $application = Application::factory()->create();
         $otherApplication = Application::factory()->create();
         $plainTextKey = str_repeat('q', 64);

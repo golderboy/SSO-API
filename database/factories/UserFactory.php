@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\SystemRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +34,8 @@ class UserFactory extends Factory
             'cid_hash' => null,
             'cid_encrypted' => null,
             'is_active' => true,
-            'is_super_admin' => false,
+            'system_role' => SystemRole::User,
+            'admin_slot' => null,
             'remember_token' => Str::random(10),
         ];
     }
@@ -51,7 +53,17 @@ class UserFactory extends Factory
     public function superAdmin(): static
     {
         return $this->state(fn () => [
-            'is_super_admin' => true,
+            'system_role' => SystemRole::SuperAdmin,
+            'admin_slot' => null,
+            'is_active' => true,
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn () => [
+            'system_role' => SystemRole::Admin,
+            'admin_slot' => 1,
             'is_active' => true,
         ]);
     }
