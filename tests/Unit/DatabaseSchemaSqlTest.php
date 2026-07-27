@@ -22,6 +22,11 @@ class DatabaseSchemaSqlTest extends TestCase
             'access_grants',
             'audit_logs',
             'personal_access_tokens',
+            'sso_subjects',
+            'oauth_clients',
+            'oauth_auth_codes',
+            'oauth_access_tokens',
+            'oauth_refresh_tokens',
         ] as $table) {
             $this->assertStringContainsString(
                 "CREATE TABLE IF NOT EXISTS `{$table}`",
@@ -40,6 +45,11 @@ class DatabaseSchemaSqlTest extends TestCase
             '2026_07_27_063316_create_access_grants_table',
             '2026_07_27_063317_create_audit_logs_table',
             '2026_07_27_063318_replace_super_admin_flag_with_system_role',
+            '2026_07_27_063319_create_sso_subjects_table',
+            '2026_07_27_063320_create_oauth_clients_table',
+            '2026_07_27_063321_create_oauth_auth_codes_table',
+            '2026_07_27_063322_create_oauth_access_tokens_table',
+            '2026_07_27_063323_create_oauth_refresh_tokens_table',
         ] as $migration) {
             $this->assertStringContainsString($migration, $sql);
         }
@@ -99,5 +109,33 @@ class DatabaseSchemaSqlTest extends TestCase
             $sql,
         );
         $this->assertStringNotContainsString('IDENTIFIED BY', $sql);
+    }
+
+    public function test_deployed_database_has_oauth_upgrade_and_rollback_sql(): void
+    {
+        $base = dirname(__DIR__, 2).'/database/schema/upgrades/';
+        $upgrade = (string) file_get_contents(
+            $base.'2026_07_27_063319_oauth_foundation.sql',
+        );
+        $rollback = (string) file_get_contents(
+            $base.'2026_07_27_063319_oauth_foundation_rollback.sql',
+        );
+
+        foreach ([
+            'sso_subjects',
+            'oauth_clients',
+            'oauth_auth_codes',
+            'oauth_access_tokens',
+            'oauth_refresh_tokens',
+        ] as $table) {
+            $this->assertStringContainsString(
+                "CREATE TABLE IF NOT EXISTS `{$table}`",
+                $upgrade,
+            );
+            $this->assertStringContainsString(
+                "DROP TABLE IF EXISTS `{$table}`",
+                $rollback,
+            );
+        }
     }
 }

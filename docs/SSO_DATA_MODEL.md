@@ -76,6 +76,25 @@ Plain text API key แสดงเฉพาะตอนสร้างและ�
 ตารางของ Laravel Sanctum สำหรับ Admin Bearer Token
 กำหนด token expiration ผ่าน `SANCTUM_EXPIRATION_MINUTES`
 
+## sso_subjects
+
+- `user_id` unique และ foreign key ไป `users`
+- เป็น subject ภายในสำหรับ downstream OAuth โดยเฉพาะ
+- ไม่เก็บ CID ซ้ำและไม่ใช้รับ password
+
+การแยกตารางนี้ทำให้ Admin Sanctum token และ downstream Passport token ใช้
+authentication model/guard คนละชุด
+
+## ตาราง downstream OAuth
+
+- `oauth_clients`: client ID, client secret แบบ hash, exact redirect URI และ grant type
+- `oauth_auth_codes`: one-time authorization code อายุ 5 นาที
+- `oauth_access_tokens`: downstream access token อายุ 30 นาที
+- `oauth_refresh_tokens`: รองรับ engine แต่ client รุ่น pilot จะไม่เปิด
+  `refresh_token` grant
+
+ไม่ได้สร้าง `oauth_device_codes` เพราะระบบไม่เปิด Device Code Grant
+
 ## audit_logs
 
 - `public_id` UUID unique
@@ -109,7 +128,6 @@ Plain text API key แสดงเฉพาะตอนสร้างและ�
 - provider configuration โดยเก็บเพียง secret reference
 - registered callback URI แบบ exact match
 - authentication transactions
-- downstream authorization codes และ sessions
 - organization membership จาก Provider ID
 
 ## Decision ที่ยังค้าง

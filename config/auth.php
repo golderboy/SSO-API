@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\SsoSubject;
 use App\Models\User;
 
 return [
@@ -42,6 +43,14 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'sso_web' => [
+            'driver' => 'session',
+            'provider' => 'sso_subjects',
+        ],
+        'sso_api' => [
+            'driver' => 'passport',
+            'provider' => 'sso_subjects',
+        ],
     ],
 
     /*
@@ -65,6 +74,10 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+        'sso_subjects' => [
+            'driver' => 'eloquent',
+            'model' => SsoSubject::class,
         ],
 
         // 'users' => [

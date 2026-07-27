@@ -9,4 +9,18 @@ return [
     'api_key_length' => (int) env('SSO_API_KEY_LENGTH', 64),
     'default_page_size' => (int) env('SSO_DEFAULT_PAGE_SIZE', 20),
     'max_page_size' => (int) env('SSO_MAX_PAGE_SIZE', 100),
+    'oauth' => [
+        'authorization_code_ttl_minutes' => (int) env(
+            'SSO_AUTHORIZATION_CODE_TTL_MINUTES',
+            5,
+        ),
+        'access_token_ttl_minutes' => (int) env(
+            'SSO_ACCESS_TOKEN_TTL_MINUTES',
+            30,
+        ),
+        'refresh_token_ttl_minutes' => (int) env(
+            'SSO_REFRESH_TOKEN_TTL_MINUTES',
+            30,
+        ),
+    ],
 ];

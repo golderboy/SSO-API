@@ -4,7 +4,7 @@
 
 ระบบแบ่งเป็น 5 ส่วน:
 
-1. **Downstream OIDC layer** ออก authorization code และ token ให้เว็บไซต์ของหน่วยงาน
+1. **Downstream OAuth 2.0 layer** ออก authorization code และ access token ให้เว็บไซต์ของหน่วยงาน
 2. **Authentication broker** เลือกและเชื่อมต่อ upstream provider
 3. **Identity mapping service** ผูก external subject กับ local user
 4. **Authorization policy service** ตรวจสิทธิ์ตาม application, organization, role และช่วงเวลา
@@ -12,7 +12,14 @@
 
 ## ทางเลือกที่แนะนำ
 
-ใช้ OIDC engine ที่ผ่านการใช้งานจริงสำหรับ downstream protocol และ cryptography ส่วนโค้ดของหน่วยงานรับผิดชอบ provider adapter, identity mapping และ policy integration
+ใช้ Laravel Passport 13.7.5 ซึ่งทำงานบน League OAuth2 Server สำหรับ downstream
+Authorization Code flow และ cryptography ส่วนโค้ดของหน่วยงานรับผิดชอบ provider
+adapter, identity mapping, policy integration, `userinfo` และ revocation
+
+เฟสนี้ไม่อ้างว่าเป็น OpenID Connect Provider เต็มรูปแบบ เพราะยังไม่ออก `id_token`
+และยังไม่มี discovery/JWKS contract เว็บไซต์ทดสอบใช้ authorization code, access token
+และ `userinfo` เท่านั้น หากเว็บไซต์จริงต้องการ OIDC เต็มรูปแบบต้องผ่าน decision gate
+และเพิ่ม conformance test ก่อนเปิดใช้
 
 หากการประเมินพบว่าผลิตภัณฑ์สำเร็จรูปไม่รองรับ upstream contract ให้สร้าง broker service แยก แต่ยังใช้ library มาตรฐานสำหรับ OAuth/OIDC และ JWT ห้ามเขียน cryptographic primitive เอง
 
@@ -27,7 +34,7 @@ sequenceDiagram
     participant D as Policy Database
 
     U->>A: Login
-    A->>S: /authorize + client_id + redirect_uri + state + PKCE
+    A->>S: /call/authorize + client_id + redirect_uri + state + PKCE
     S->>S: Exact-match client and callback
     S->>S: Create short-lived transaction
     S->>P: Authorization request
@@ -40,7 +47,7 @@ sequenceDiagram
     D-->>S: Allow or deny
     alt Allowed
         S-->>A: One-time authorization code
-        A->>S: Back-channel token exchange + verifier
+        A->>S: /call/token + verifier
         S-->>A: Downstream token/session claims
     else Denied
         S-->>U: Access denied with correlation ID
@@ -86,6 +93,17 @@ sequenceDiagram
 - `amr`
 
 ห้ามส่ง upstream token และ raw provider profile ให้ downstream application
+
+## Authentication plane isolation
+
+- Admin API ใช้ `User` + Laravel Sanctum
+- Public SSO ใช้ `SsoSubject` + Laravel Passport
+- สองส่วนใช้ guard และ token table คนละชุด ป้องกัน Admin token ถูกนำไปใช้เป็น
+  downstream SSO token หรือกลับกัน
+- Passport routes อยู่ที่ Laravel root (`/authorize`, `/token`) และถูก Apache
+  reverse proxy เผยแพร่ภายนอกเป็น `/call/authorize`, `/call/token`
+- Device Code, Password Grant, Implicit Grant และ Passport client-management JSON
+  routes ไม่เปิดใช้
 
 ## Failure behavior
 

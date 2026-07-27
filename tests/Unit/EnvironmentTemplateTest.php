@@ -40,9 +40,32 @@ class EnvironmentTemplateTest extends TestCase
             'DB_PASSWORD',
             'CID_LOOKUP_KEY',
             'AUDIT_HASH_KEY',
+            'PASSPORT_PRIVATE_KEY',
+            'PASSPORT_PUBLIC_KEY',
         ] as $name) {
             $this->assertMatchesRegularExpression(
                 '/^'.preg_quote($name, '/').'=$/m',
+                $template,
+            );
+        }
+    }
+
+    public function test_almalinux_template_enforces_approved_local_lifetimes(): void
+    {
+        $template = (string) file_get_contents(
+            dirname(__DIR__, 2).'/.env.almalinux.example',
+        );
+
+        foreach ([
+            'SESSION_LIFETIME=30',
+            'SANCTUM_EXPIRATION_MINUTES=30',
+            'SSO_AUTHORIZATION_CODE_TTL_MINUTES=5',
+            'SSO_ACCESS_TOKEN_TTL_MINUTES=30',
+            'SSO_REFRESH_TOKEN_TTL_MINUTES=30',
+            'PASSPORT_KEY_PATH=/etc/sobmoei/oauth',
+        ] as $setting) {
+            $this->assertMatchesRegularExpression(
+                '/^'.preg_quote($setting, '/').'$/m',
                 $template,
             );
         }

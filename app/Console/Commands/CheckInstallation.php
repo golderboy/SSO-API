@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Passport\Passport;
 use Throwable;
 
 #[Signature('sso:check-installation {--providers : Require both ThaID and MOPH ID credentials}')]
@@ -23,6 +24,7 @@ class CheckInstallation extends Command
     {
         $this->checkRuntime();
         $this->checkApplication();
+        $this->checkOAuth();
         $this->checkDatabase();
         $this->checkFilesystem();
         $this->checkProviders();
@@ -72,6 +74,7 @@ class CheckInstallation extends Command
             'pdo',
             'pdo_mysql',
             'session',
+            'sodium',
             'tokenizer',
             'xml',
             'xmlwriter',
@@ -140,6 +143,56 @@ class CheckInstallation extends Command
             $cidKey !== '' && $auditKey !== '' && ! hash_equals($cidKey, $auditKey),
             'CID_LOOKUP_KEY and AUDIT_HASH_KEY must be different',
         );
+        $this->record(
+            'Session lifetime',
+            (int) config('session.lifetime') === 30,
+            'must be exactly 30 minutes',
+        );
+        $this->record(
+            'Admin token lifetime',
+            (int) config('sanctum.expiration') === 30,
+            'must be exactly 30 minutes',
+        );
+    }
+
+    private function checkOAuth(): void
+    {
+        $expectedTtls = [
+            'authorization_code_ttl_minutes' => 5,
+            'access_token_ttl_minutes' => 30,
+            'refresh_token_ttl_minutes' => 30,
+        ];
+
+        foreach ($expectedTtls as $key => $expected) {
+            $actual = config("sso.oauth.{$key}");
+
+            $this->record(
+                "OAuth {$key}",
+                $actual === $expected,
+                "must be exactly {$expected} minutes",
+            );
+        }
+
+        if (! app()->environment('production')) {
+            return;
+        }
+
+        foreach (['private', 'public'] as $type) {
+            $inlineKey = config("passport.{$type}_key");
+            $keyAvailable = is_string($inlineKey) && trim($inlineKey) !== '';
+
+            if (! $keyAvailable) {
+                $keyAvailable = is_readable(
+                    Passport::keyPath("oauth-{$type}.key"),
+                );
+            }
+
+            $this->record(
+                "OAuth {$type} key",
+                $keyAvailable,
+                $keyAvailable ? 'configured and readable' : 'missing or unreadable',
+            );
+        }
     }
 
     private function checkDatabase(): void
@@ -167,6 +220,11 @@ class CheckInstallation extends Command
             'access_grants',
             'audit_logs',
             'personal_access_tokens',
+            'sso_subjects',
+            'oauth_clients',
+            'oauth_auth_codes',
+            'oauth_access_tokens',
+            'oauth_refresh_tokens',
             'migrations',
         ];
         $missingTables = array_values(array_filter(
