@@ -127,14 +127,23 @@ sudo restorecon -Rv /var/www/sso-api
 sudo setsebool -P httpd_can_network_connect on
 sudo setsebool -P httpd_can_network_connect_db on
 
-sudo semanage port -a -t http_port_t -p tcp 8089
+sudo semanage port -l | grep -w 8089
 ```
 
 อย่าปิด SELinux เพื่อแก้ permission ให้ตรวจ `ausearch`/`sealert`
 และปรับ label เฉพาะ path ที่จำเป็น
 
-หาก port `8089` มี `http_port_t` อยู่แล้ว ไม่ต้องเพิ่มซ้ำ ให้ตรวจด้วย
-`sudo semanage port -l | grep http_port_t`
+หากไม่พบ port `8089` ให้เพิ่มด้วย:
+
+```bash
+sudo semanage port -a -t http_port_t -p tcp 8089
+```
+
+หากมี port อยู่แล้วแต่ชนิดไม่ใช่ `http_port_t` ให้แก้เฉพาะ port นี้ด้วย:
+
+```bash
+sudo semanage port -m -t http_port_t -p tcp 8089
+```
 
 ## 5. เลือก Web server
 
@@ -169,7 +178,13 @@ IncludeOptional conf.d/sso-api-proxy.inc
 
 ```bash
 sudo apachectl -S > /root/httpd-vhosts-after-sso.txt
-sudo diff -u /root/httpd-vhosts-before-sso.txt /root/httpd-vhosts-after-sso.txt
+if sudo test -f /root/httpd-vhosts-before-sso.txt; then
+  sudo diff -u /root/httpd-vhosts-before-sso.txt \
+    /root/httpd-vhosts-after-sso.txt
+else
+  echo "No pre-change snapshot; review current apachectl -S output manually."
+  sudo cat /root/httpd-vhosts-after-sso.txt
+fi
 sudo ss -lntp | grep 8089
 ```
 
