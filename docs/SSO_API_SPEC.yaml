@@ -145,15 +145,30 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [sub]
+                required: [sub, provider]
                 properties:
                   sub:
                     type: string
+                  name:
+                    type: string
+                    maxLength: 200
+                  provider:
+                    type: string
+                    enum: [thaid, provider_id]
                   org_id:
                     type: string
+                  org_name:
+                    type: string
+                    maxLength: 255
                   hcode:
                     type: string
                   roles:
+                    type: array
+                    items:
+                      type: string
+                  auth_time:
+                    type: integer
+                  amr:
                     type: array
                     items:
                       type: string
