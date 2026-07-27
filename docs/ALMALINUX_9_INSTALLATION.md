@@ -3,8 +3,9 @@
 คู่มือนี้กำหนด path ตัวอย่างเป็น `/var/www/sso-api` และฐานข้อมูล `sso`
 ต้องแทนค่าโดเมน, certificate และ credential ให้ตรงกับ server จริง
 
-Apache deployment ของระบบนี้ใช้ HTTP port `8089` และ HTTPS port `4343`
-เพื่อไม่ชนกับโดเมนหลักที่ใช้ port `80/443`
+Apache deployment ของระบบนี้ใช้ name-based VirtualHost ร่วมกับเว็บไซต์อื่นบน
+HTTPS port `443` โดยแยกด้วย `ServerName` ของ SSO และไม่ประกาศ `Listen 443` ซ้ำ
+WAF จึงส่ง traffic ผ่าน port มาตรฐานได้โดยไม่ต้องเปิด port เพิ่ม
 
 ## 1. เตรียมระบบ
 
@@ -56,12 +57,12 @@ chmod 600 .env
 เปิด `THAID_ENABLED=true` และ `MOPH_ID_ENABLED=true`
 เมื่อใส่ test credential ครบและพร้อมทดสอบ UAT เท่านั้น
 
-`APP_URL` และ callback URI ทุกระบบต้องระบุ HTTPS port `4343` เช่น:
+`APP_URL` และ callback URI ทุกระบบต้องใช้ HTTPS URL มาตรฐานโดยไม่ระบุ port เช่น:
 
 ```dotenv
-APP_URL=https://sso.example.go.th:4343
-THAID_REDIRECT_URI=https://sso.example.go.th:4343/api/callback/thaid
-HEALTH_ID_REDIRECT_URI=https://sso.example.go.th:4343/api/callback/moph-id
+APP_URL=https://sso.example.go.th
+THAID_REDIRECT_URI=https://sso.example.go.th/api/callback/thaid
+HEALTH_ID_REDIRECT_URI=https://sso.example.go.th/api/callback/moph-id
 ```
 
 ตัวอย่าง callback เป็นรูปแบบอธิบายเท่านั้น ต้องใช้ path จริงที่ระบบรองรับ
@@ -123,16 +124,10 @@ sudo restorecon -Rv /var/www/sso-api
 
 sudo setsebool -P httpd_can_network_connect on
 sudo setsebool -P httpd_can_network_connect_db on
-
-sudo semanage port -a -t http_port_t -p tcp 8089
-sudo semanage port -a -t http_port_t -p tcp 4343
 ```
 
 อย่าปิด SELinux เพื่อแก้ permission ให้ตรวจ `ausearch`/`sealert`
 และปรับ label เฉพาะ path ที่จำเป็น
-
-หาก `semanage port -a` แจ้งว่าพอร์ตถูกกำหนดไว้แล้ว ให้ตรวจด้วย
-`sudo semanage port -l | grep http_port_t` ก่อนใช้ `-m` แก้ชนิดของพอร์ต
 
 ## 5. เลือก Web server
 
@@ -140,15 +135,23 @@ sudo semanage port -a -t http_port_t -p tcp 4343
 
 ```bash
 sudo dnf install -y httpd mod_ssl
+sudo apachectl -S > /root/httpd-vhosts-before-sso.txt
+sudo grep -RIn "ServerName .*sso.example.go.th" /etc/httpd/conf /etc/httpd/conf.d
 sudo cp deploy/almalinux9/httpd/sso-api.conf.example /etc/httpd/conf.d/sso-api.conf
 sudoedit /etc/httpd/conf.d/sso-api.conf
 sudo apachectl configtest
-sudo systemctl enable --now php-fpm httpd
+sudo systemctl enable --now php-fpm
+sudo systemctl reload httpd
 ```
 
-ไฟล์นี้ประกาศเฉพาะ `8089/4343` และไม่แก้ VirtualHost หลักที่ `80/443`
-ไม่เปิด HSTS บน VirtualHost นี้ เพราะ HTTP และ HTTPS ใช้คนละ non-standard port
-ซึ่ง HSTS ระดับ hostname อาจทำให้ browser พยายามใช้ TLS ผิดที่ port `8089`
+แทน `sso.example.go.th` ด้วยโดเมนจริงก่อนตรวจชื่อซ้ำ หากพบว่า VirtualHost เดิม
+ประกาศ `ServerName` เดียวกันบน `*:443` ห้ามเพิ่มอีกตัว ให้หยุดและรวม configuration
+เข้ากับ VirtualHost เดิมก่อน
+
+template เพิ่มเฉพาะ `<VirtualHost *:443>` ที่ระบุ `ServerName` เฉพาะของ SSO
+ไม่ประกาศ `Listen 443`, wildcard `ServerAlias` หรือแก้ VirtualHost ของเว็บไซต์อื่น
+หลัง reload ให้ตรวจ `sudo apachectl -S` และยืนยันว่าแต่ละ hostname บน `*:443`
+ชี้ไปยังไฟล์ configuration ที่ถูกต้อง
 
 ### Nginx
 
@@ -164,12 +167,12 @@ sudo systemctl enable --now php-fpm nginx
 และสิทธิ์ `listen.acl_users` ใน `/etc/php-fpm.d/www.conf`
 ให้ web server ที่เลือกเข้าถึงได้
 
-เปิด firewall หลังตั้ง certificate และ domain แล้ว:
+ใช้ HTTPS service มาตรฐานของ firewall และไม่เปิด custom port:
 
 ```bash
-sudo firewall-cmd --permanent --add-port=8089/tcp
-sudo firewall-cmd --permanent --add-port=4343/tcp
+sudo firewall-cmd --permanent --add-service=https
 sudo firewall-cmd --reload
+sudo firewall-cmd --query-service=https
 ```
 
 ## 6. สร้าง Admin และ cache
@@ -186,10 +189,14 @@ php artisan sso:check-installation --providers
 ## 7. Smoke test
 
 ```bash
-curl --fail --silent --show-error https://YOUR-DOMAIN:4343/up
 curl --fail --silent --show-error \
+  --user-agent 'Sobmoei-SSO-HealthCheck/1.0' \
+  https://YOUR-DOMAIN/up
+curl --silent --show-error --output /dev/null \
+  --write-out '%{http_code}\n' \
+  --user-agent 'Sobmoei-SSO-HealthCheck/1.0' \
   -H 'Accept: application/json' \
-  https://YOUR-DOMAIN:4343/api/v1/auth/me
+  https://YOUR-DOMAIN/api/v1/auth/me
 ```
 
 ผลที่คาดหวังคือ `/up` สำเร็จ และ `/auth/me` ตอบ `401`

@@ -1,12 +1,6 @@
-Listen 8089
-Listen 4343 https
-
-<VirtualHost *:8089>
-    ServerName CHANGE-ME.example.invalid
-    Redirect permanent / https://CHANGE-ME.example.invalid:4343/
-</VirtualHost>
-
-<VirtualHost *:4343>
+# Port 443 is already declared by the existing Apache SSL configuration.
+# Do not add another Listen 443 directive.
+<VirtualHost *:443>
     ServerName CHANGE-ME.example.invalid
     DocumentRoot /var/www/sso-api/public
 
