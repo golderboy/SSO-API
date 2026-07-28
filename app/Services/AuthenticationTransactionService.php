@@ -372,12 +372,19 @@ class AuthenticationTransactionService
 
     private function browserSessionHash(Request $request): string
     {
-        if (! $request->hasSession() || $request->session()->getId() === '') {
+        if (! $request->hasSession()) {
             throw new LogicException(
                 'A stateful browser session is required for SSO transactions.',
             );
         }
 
-        return $this->opaqueValueHash($request->session()->getId());
+        $binding = $request->session()->get('sso.browser_binding');
+
+        if (! is_string($binding) || strlen($binding) !== 64) {
+            $binding = Str::random(64);
+            $request->session()->put('sso.browser_binding', $binding);
+        }
+
+        return $this->opaqueValueHash($binding);
     }
 }

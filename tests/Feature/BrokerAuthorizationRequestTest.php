@@ -42,7 +42,7 @@ class BrokerAuthorizationRequestTest extends TestCase
         $this->get('/authorize?'.http_build_query($parameters))
             ->assertOk()
             ->assertSee($application->name)
-            ->assertHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private')
+            ->assertHeader('Cache-Control', 'must-revalidate, no-cache, no-store, private')
             ->assertHeader('X-Frame-Options', 'DENY');
 
         $transaction = AuthenticationTransaction::query()->sole();

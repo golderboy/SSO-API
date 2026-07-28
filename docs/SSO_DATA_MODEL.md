@@ -116,7 +116,8 @@ authentication model/guard คนละชุด
 
 - `public_id` UUID สำหรับ route โดยไม่เปิดเผยเลขลำดับ
 - `application_sso_config_id`
-- `browser_session_hash`: keyed HMAC ของ session ID
+- `browser_session_hash`: keyed HMAC ของค่าสุ่ม 64 ตัวอักษรที่เก็บใน server-side
+  browser session
 - `downstream_request`: encrypted payload ของ client, exact callback, scope,
   state, nonce และ PKCE challenge
 - `upstream_state_hash`: keyed HMAC และ unique เมื่อ provider รองรับ state

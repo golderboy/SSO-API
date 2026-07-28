@@ -64,8 +64,9 @@ sequenceDiagram
 - URL, client secret และ signing key ไม่รับจาก browser request
 - transaction อายุ 5 นาที ผูก exact downstream request, provider, client,
   redirect URI และ browser session
-- downstream request ถูกเข้ารหัสด้วย `APP_KEY`; browser session และ upstream
-  state เก็บเป็น keyed HMAC ด้วย `TRANSACTION_HASH_KEY`
+- downstream request ถูกเข้ารหัสด้วย `APP_KEY`; ค่าสุ่มที่ผูกกับ browser session
+  และ upstream state เก็บในฐานข้อมูลเป็น keyed HMAC ด้วย
+  `TRANSACTION_HASH_KEY`
 - ก่อนออก authorization code ต้องตรวจ user, application, organization,
   access grant, callback และ client ซ้ำอีกครั้ง
 - การออก code ใช้ atomic state transition `approved` → `issuing` → `consumed`
