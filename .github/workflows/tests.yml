@@ -61,6 +61,9 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
+      - name: Prepare test environment file
+        run: cp .env.example .env
+
       - name: Import MariaDB schema
         run: mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password < database/schema/sso_mariadb.sql
 
