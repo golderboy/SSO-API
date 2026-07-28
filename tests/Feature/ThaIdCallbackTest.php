@@ -100,10 +100,35 @@ class ThaIdCallbackTest extends TestCase
             ->sole();
         $this->assertSame('thaid', $audit->context['provider']);
         $this->assertArrayNotHasKey('cid', $audit->context);
+    }
 
-        $this->withServerVariables([])
-            ->get($callbackUri)
-            ->assertForbidden();
+    public function test_replayed_callback_does_not_exchange_code_again(): void
+    {
+        [$application, $client] = $this->oauthApplication();
+        $cid = $this->syntheticCid();
+        $user = $this->userWithCid($cid);
+        AccessGrant::factory()->create([
+            'user_id' => $user->id,
+            'application_id' => $application->id,
+        ]);
+        [$transaction, $state] = $this->selectThaId($client);
+        $provider = Mockery::mock(ThaIdIdentityProvider::class);
+        $provider->shouldReceive('authenticate')
+            ->once()
+            ->with('authorization-code-123')
+            ->andReturn(VerifiedExternalIdentity::thaId(
+                'replay-protected-subject',
+                $cid,
+            ));
+        $this->app->instance(ThaIdIdentityProvider::class, $provider);
+        $callbackUri = '/sso/callback/thaid?'.http_build_query([
+            'code' => 'authorization-code-123',
+            'state' => $state,
+        ]);
+
+        $this->get($callbackUri)->assertRedirect();
+        $this->get($callbackUri)->assertForbidden();
+
         $this->assertSame(
             AuthenticationTransactionStatus::Approved,
             $transaction->fresh()->status,
