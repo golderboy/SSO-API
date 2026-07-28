@@ -61,16 +61,17 @@ class ThaIdCallbackTest extends TestCase
             ));
         $this->app->instance(ThaIdIdentityProvider::class, $provider);
 
+        $callbackUri = route('sso.callback.thaid', [
+            'code' => 'authorization-code-123',
+            'state' => $state,
+        ], false);
         $response = $this->withServerVariables([
             'REMOTE_ADDR' => '127.0.0.1',
             'HTTP_X_FORWARDED_HOST' => 'sobmoeiservice.moph.go.th',
             'HTTP_X_FORWARDED_PORT' => '443',
             'HTTP_X_FORWARDED_PROTO' => 'https',
             'HTTP_X_FORWARDED_PREFIX' => '/call',
-        ])->get(route('sso.callback.thaid', [
-            'code' => 'authorization-code-123',
-            'state' => $state,
-        ], false))->assertRedirect();
+        ])->get($callbackUri)->assertRedirect();
 
         $transaction->refresh();
         $this->assertSame(
@@ -100,10 +101,7 @@ class ThaIdCallbackTest extends TestCase
         $this->assertSame('thaid', $audit->context['provider']);
         $this->assertArrayNotHasKey('cid', $audit->context);
 
-        $this->get(route('sso.callback.thaid', [
-            'code' => 'authorization-code-123',
-            'state' => $state,
-        ], false))->assertForbidden();
+        $this->get($callbackUri)->assertForbidden();
         $this->assertSame(
             AuthenticationTransactionStatus::Approved,
             $transaction->fresh()->status,

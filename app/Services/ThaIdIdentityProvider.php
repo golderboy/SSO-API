@@ -94,9 +94,7 @@ class ThaIdIdentityProvider implements ThaIdIdentityProviderContract
             [
                 'grant_type' => 'authorization_code',
                 'code' => $authorizationCode,
-                'redirect_uri' => $this->httpsConfig(
-                    'services.thaid.redirect_uri',
-                ),
+                'redirect_uri' => $this->redirectUriConfig(),
             ],
             'token_exchange_failed',
         );
@@ -597,18 +595,27 @@ class ThaIdIdentityProvider implements ThaIdIdentityProviderContract
     {
         $value = $this->stringConfig($key);
         $this->validHttpsUrl($value);
-        $this->assertSameProviderOriginUnlessIssuer($key, $value);
+        $this->assertSameProviderOrigin($value);
 
         return $value;
     }
 
-    private function assertSameProviderOriginUnlessIssuer(
-        string $key,
-        string $url,
-    ): void {
-        if ($key !== 'services.thaid.issuer') {
-            $this->assertSameProviderOrigin($url);
+    private function redirectUriConfig(): string
+    {
+        $value = $this->stringConfig('services.thaid.redirect_uri');
+        $this->validHttpsUrl($value);
+        $expected = rtrim(
+            $this->stringConfig('app.url'),
+            '/',
+        ).'/sso/callback/thaid';
+
+        if (! hash_equals($expected, $value)) {
+            throw new UpstreamAuthenticationException(
+                'provider_configuration_invalid',
+            );
         }
+
+        return $value;
     }
 
     /**

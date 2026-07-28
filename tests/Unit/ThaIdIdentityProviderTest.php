@@ -301,6 +301,7 @@ class ThaIdIdentityProviderTest extends TestCase
     private function configureProvider(): void
     {
         config([
+            'app.url' => 'https://sso.example.test',
             'services.thaid.enabled' => true,
             'services.thaid.client_id' => 'thaid-test-client',
             'services.thaid.client_secret' => 'thaid-test-secret',
