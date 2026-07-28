@@ -28,6 +28,16 @@ class SsoPassportServiceProvider extends PassportServiceProvider
             'organization' => 'Read effective organization claims.',
             'roles' => 'Read effective application roles and permissions.',
         ]);
+        Passport::authorizationView(
+            fn (array $parameters) => response()->view(
+                'sso.error',
+                [
+                    'error' => 'access_denied',
+                    'message' => 'Broker approval is required.',
+                ],
+                403,
+            ),
+        );
 
         Passport::tokensExpireIn(
             $this->minutesInterval('access_token_ttl_minutes'),

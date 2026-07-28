@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Laravel\Passport\Client;
+use Laravel\Passport\Contracts\AuthorizationViewResponse;
 use Tests\TestCase;
 
 class BrokerAuthorizationRequestTest extends TestCase
@@ -410,6 +411,19 @@ class BrokerAuthorizationRequestTest extends TestCase
         request()->attributes->set('sso_broker_approved', true);
 
         $this->assertTrue($client->skipsAuthorization($subject, []));
+    }
+
+    public function test_passport_consent_fallback_is_bound_and_fails_closed(): void
+    {
+        $response = app(AuthorizationViewResponse::class)
+            ->withParameters([])
+            ->toResponse(request());
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertStringContainsString(
+            'access_denied',
+            (string) $response->getContent(),
+        );
     }
 
     /**
