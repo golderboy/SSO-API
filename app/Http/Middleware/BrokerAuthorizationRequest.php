@@ -8,7 +8,6 @@ use App\Services\AuthenticationTransactionService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -96,11 +95,13 @@ class BrokerAuthorizationRequest
         Response $response,
         AuthenticationTransaction $transaction,
     ): bool {
-        if (! $response instanceof RedirectResponse) {
+        $location = $response->headers->get('Location');
+
+        if (! $response->isRedirection() || ! is_string($location)) {
             return false;
         }
 
-        $target = parse_url($response->getTargetUrl());
+        $target = parse_url($location);
         $redirect = parse_url(
             (string) $transaction->downstream_request['redirect_uri'],
         );
