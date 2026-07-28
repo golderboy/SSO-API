@@ -20,6 +20,7 @@ class CheckInstallationTest extends TestCase
             'sso.cid_lookup_key' => str_repeat('c', 32),
             'sso.provider_cid_lookup_key' => str_repeat('p', 32),
             'sso.external_subject_lookup_key' => str_repeat('s', 32),
+            'sso.transaction_hash_key' => str_repeat('t', 32),
             'sso.audit_hash_key' => str_repeat('a', 32),
         ]);
     }

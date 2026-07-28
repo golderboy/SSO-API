@@ -35,6 +35,7 @@ jobs:
       CID_LOOKUP_KEY: testing-cid-lookup-key-32-bytes-minimum
       PROVIDER_CID_LOOKUP_KEY: testing-provider-cid-key-32-bytes-minimum
       EXTERNAL_SUBJECT_LOOKUP_KEY: testing-subject-key-32-bytes-minimum
+      TRANSACTION_HASH_KEY: testing-transaction-key-32-bytes-minimum
       AUDIT_HASH_KEY: testing-audit-hash-key-32-bytes-minimum
       DB_CONNECTION: mariadb
       DB_HOST: 127.0.0.1
@@ -69,6 +70,8 @@ jobs:
       - name: Verify SQL rollbacks and upgrades
         run: |
           mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
+            < database/schema/upgrades/2026_07_27_063327_authentication_transactions_rollback.sql
+          mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
             < database/schema/upgrades/2026_07_27_063326_application_sso_clients_rollback.sql
           mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
             < database/schema/upgrades/2026_07_27_063324_identity_mapping_rollback.sql
@@ -96,6 +99,12 @@ jobs:
             < database/schema/upgrades/2026_07_27_063326_application_sso_clients_rollback.sql
           mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
             < database/schema/upgrades/2026_07_27_063326_application_sso_clients.sql
+          mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
+            < database/schema/upgrades/2026_07_27_063327_authentication_transactions.sql
+          mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
+            < database/schema/upgrades/2026_07_27_063327_authentication_transactions_rollback.sql
+          mysql --host=127.0.0.1 --port=3306 --user=root --password=test-root-password \
+            < database/schema/upgrades/2026_07_27_063327_authentication_transactions.sql
           php artisan migrate:status
 
       - name: Generate test OAuth signing keys

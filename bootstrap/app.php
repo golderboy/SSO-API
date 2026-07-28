@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AddApiSecurityHeaders;
+use App\Http\Middleware\AddSsoSecurityHeaders;
 use App\Http\Middleware\AuthenticateApplicationApiKey;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureAdministrativeUser;
@@ -13,6 +14,7 @@ use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
+        web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
@@ -29,6 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->api(append: [
             AddApiSecurityHeaders::class,
+        ]);
+        $middleware->web(append: [
+            AddSsoSecurityHeaders::class,
         ]);
 
         $middleware->alias([

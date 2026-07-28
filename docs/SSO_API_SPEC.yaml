@@ -71,18 +71,24 @@ paths:
           schema:
             type: string
             minLength: 16
+            maxLength: 512
+            pattern: "^[A-Za-z0-9._~-]+$"
         - name: nonce
           in: query
           required: false
           schema:
             type: string
+            minLength: 16
+            maxLength: 512
+            pattern: "^[A-Za-z0-9._~-]+$"
         - name: code_challenge
           in: query
           required: true
           schema:
             type: string
             minLength: 43
-            maxLength: 128
+            maxLength: 43
+            pattern: "^[A-Za-z0-9_-]+$"
         - name: code_challenge_method
           in: query
           required: true
@@ -93,6 +99,10 @@ paths:
         "302":
           description: Redirect to an upstream provider or registered callback
         "400":
+          $ref: "#/components/responses/OAuthError"
+        "401":
+          $ref: "#/components/responses/OAuthError"
+        "403":
           $ref: "#/components/responses/OAuthError"
   /token:
     post:

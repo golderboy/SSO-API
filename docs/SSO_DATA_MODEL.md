@@ -112,6 +112,25 @@ authentication model/guard คนละชุด
 
 ไม่ได้สร้าง `oauth_device_codes` เพราะระบบไม่เปิด Device Code Grant
 
+## authentication_transactions
+
+- `public_id` UUID สำหรับ route โดยไม่เปิดเผยเลขลำดับ
+- `application_sso_config_id`
+- `browser_session_hash`: keyed HMAC ของ session ID
+- `downstream_request`: encrypted payload ของ client, exact callback, scope,
+  state, nonce และ PKCE challenge
+- `upstream_state_hash`: keyed HMAC และ unique เมื่อ provider รองรับ state
+- `selected_provider`
+- `status`: `pending`, `provider_selected`, `organization_required`,
+  `approved`, `issuing`, `consumed` หรือ `denied`
+- `user_id`, `access_grant_id`, `organization_id` เมื่อ policy อนุมัติแล้ว
+- `expires_at`, `authenticated_at`, `consumed_at`
+- timestamps
+
+ธุรกรรมมีอายุ 5 นาทีและออก authorization code ได้ครั้งเดียว สถานะ `issuing`
+ถูก claim แบบ atomic ก่อนเรียก Passport เพื่อป้องกัน concurrent replay
+ข้อมูล state, nonce, session ID และ downstream request ดิบไม่ถูกเก็บเป็น plaintext
+
 ## audit_logs
 
 - `public_id` UUID unique
@@ -142,8 +161,6 @@ authentication model/guard คนละชุด
 ## งานฐานข้อมูลในเฟสถัดไป
 
 - provider configuration โดยเก็บเพียง secret reference
-- registered callback URI แบบ exact match
-- authentication transactions
 - organization membership จาก Provider ID
 
 ## Decision ที่ยังค้าง

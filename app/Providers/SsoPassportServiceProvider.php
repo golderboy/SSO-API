@@ -2,7 +2,10 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\BrokerAuthorizationRequest;
+use App\Models\SsoOAuthClient;
 use DateInterval;
+use Illuminate\Support\Facades\Route;
 use Laravel\Passport\Bridge;
 use Laravel\Passport\Passport;
 use Laravel\Passport\PassportServiceProvider;
@@ -17,6 +20,7 @@ class SsoPassportServiceProvider extends PassportServiceProvider
         Passport::$implicitGrantEnabled = false;
         Passport::$passwordGrantEnabled = false;
         Passport::$registersJsonApiRoutes = false;
+        Passport::useClientModel(SsoOAuthClient::class);
 
         Passport::tokensCan([
             'openid' => 'Identify the authenticated SSO subject.',
@@ -39,6 +43,18 @@ class SsoPassportServiceProvider extends PassportServiceProvider
         }
 
         parent::boot();
+
+        $authorizationRoute = Route::getRoutes()->getByName(
+            'passport.authorizations.authorize',
+        );
+
+        if ($authorizationRoute === null) {
+            throw new RuntimeException(
+                'Passport authorization route was not registered.',
+            );
+        }
+
+        $authorizationRoute->middleware(BrokerAuthorizationRequest::class);
     }
 
     protected function buildAuthCodeGrant(): AuthCodeGrant

@@ -29,6 +29,7 @@ class DatabaseSchemaSqlTest extends TestCase
             'oauth_refresh_tokens',
             'external_identities',
             'application_sso_configs',
+            'authentication_transactions',
         ] as $table) {
             $this->assertStringContainsString(
                 "CREATE TABLE IF NOT EXISTS `{$table}`",
@@ -55,6 +56,7 @@ class DatabaseSchemaSqlTest extends TestCase
             '2026_07_27_063324_add_provider_cid_hash_to_users_table',
             '2026_07_27_063325_create_external_identities_table',
             '2026_07_27_063326_create_application_sso_configs_table',
+            '2026_07_27_063327_create_authentication_transactions_table',
         ] as $migration) {
             $this->assertStringContainsString($migration, $sql);
         }
@@ -195,5 +197,34 @@ class DatabaseSchemaSqlTest extends TestCase
             'DROP TABLE `application_sso_configs`',
             $rollback,
         );
+    }
+
+    public function test_authentication_transaction_sql_encrypts_payload_at_application_layer_and_guards_state(): void
+    {
+        $base = dirname(__DIR__, 2).'/database/schema/upgrades/';
+        $upgrade = (string) file_get_contents(
+            $base.'2026_07_27_063327_authentication_transactions.sql',
+        );
+        $rollback = (string) file_get_contents(
+            $base.'2026_07_27_063327_authentication_transactions_rollback.sql',
+        );
+
+        $this->assertStringContainsString(
+            '`downstream_request` TEXT NOT NULL',
+            $upgrade,
+        );
+        $this->assertStringContainsString(
+            'authentication_transactions_upstream_state_hash_unique',
+            $upgrade,
+        );
+        $this->assertStringContainsString(
+            "CHECK (`status` IN (\n            'pending', 'provider_selected'",
+            $upgrade,
+        );
+        $this->assertStringContainsString(
+            'DROP TABLE `authentication_transactions`',
+            $rollback,
+        );
+        $this->assertStringNotContainsString('upstream_state`', $upgrade);
     }
 }

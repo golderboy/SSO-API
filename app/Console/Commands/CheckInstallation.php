@@ -100,6 +100,7 @@ class CheckInstallation extends Command
         $externalSubjectKey = (string) config(
             'sso.external_subject_lookup_key',
         );
+        $transactionKey = (string) config('sso.transaction_hash_key');
         $auditKey = (string) config('sso.audit_hash_key');
         $appUrl = (string) config('app.url');
         $urlHost = parse_url($appUrl, PHP_URL_HOST);
@@ -150,6 +151,13 @@ class CheckInstallation extends Command
                 : 'must contain at least 32 characters',
         );
         $this->record(
+            'TRANSACTION_HASH_KEY',
+            strlen($transactionKey) >= 32,
+            strlen($transactionKey) >= 32
+                ? 'configured'
+                : 'must contain at least 32 characters',
+        );
+        $this->record(
             'EXTERNAL_SUBJECT_LOOKUP_KEY',
             strlen($externalSubjectKey) >= 32,
             strlen($externalSubjectKey) >= 32
@@ -160,6 +168,7 @@ class CheckInstallation extends Command
             $cidKey,
             $providerCidKey,
             $externalSubjectKey,
+            $transactionKey,
             $auditKey,
         ];
         $configuredLookupKeys = array_filter(
@@ -191,6 +200,7 @@ class CheckInstallation extends Command
             'authorization_code_ttl_minutes' => 5,
             'access_token_ttl_minutes' => 30,
             'refresh_token_ttl_minutes' => 30,
+            'transaction_ttl_minutes' => 5,
         ];
 
         foreach ($expectedTtls as $key => $expected) {
@@ -257,6 +267,7 @@ class CheckInstallation extends Command
             'oauth_refresh_tokens',
             'external_identities',
             'application_sso_configs',
+            'authentication_transactions',
             'migrations',
         ];
         $missingTables = array_values(array_filter(

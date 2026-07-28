@@ -57,10 +57,19 @@ sequenceDiagram
 ## Dynamic provider selection
 
 - application configuration ระบุ provider policy ที่อนุญาต
-- request อาจส่ง provider key ได้เฉพาะเมื่อ application policy อนุญาต
-- provider key ถูก resolve เป็น configuration ภายในระบบ
+- SSO แสดงเฉพาะ provider ที่ application policy อนุญาต และรับการเลือกผ่าน
+  POST ที่มี CSRF protection
+- provider key ถูก resolve เป็น configuration ภายในระบบ ไม่รับ URL หรือ credential
+  จาก browser
 - URL, client secret และ signing key ไม่รับจาก browser request
-- transaction ต้องผูก provider, client, redirect URI และ browser session
+- transaction อายุ 5 นาที ผูก exact downstream request, provider, client,
+  redirect URI และ browser session
+- downstream request ถูกเข้ารหัสด้วย `APP_KEY`; browser session และ upstream
+  state เก็บเป็น keyed HMAC ด้วย `TRANSACTION_HASH_KEY`
+- ก่อนออก authorization code ต้องตรวจ user, application, organization,
+  access grant, callback และ client ซ้ำอีกครั้ง
+- การออก code ใช้ atomic state transition `approved` → `issuing` → `consumed`
+  เพื่อป้องกันคำขอซ้ำพร้อมกัน; หากขั้นออก code ผิดพลาดให้จบเป็น `denied`
 
 ## Provider boundary ที่ยืนยันแล้ว
 
@@ -122,5 +131,7 @@ sequenceDiagram
 - provider timeout: fail closed และให้ retry เริ่ม transaction ใหม่
 - policy database unavailable: fail closed
 - state/nonce/code invalid: ยุติ transaction และบันทึก security event
+- transaction หมดอายุ, browser session ไม่ตรง หรือ downstream request ถูกเปลี่ยน:
+  ปฏิเสธและไม่ออก authorization code
 - organization หลายแห่ง: เลือกจาก intersection ระหว่าง provider profile กับ local grant
 - application disabled หรือ callback mismatch: ปฏิเสธก่อน redirect ไป provider
