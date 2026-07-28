@@ -101,7 +101,9 @@ class ThaIdCallbackTest extends TestCase
         $this->assertSame('thaid', $audit->context['provider']);
         $this->assertArrayNotHasKey('cid', $audit->context);
 
-        $this->get($callbackUri)->assertForbidden();
+        $this->withServerVariables([])
+            ->get($callbackUri)
+            ->assertForbidden();
         $this->assertSame(
             AuthenticationTransactionStatus::Approved,
             $transaction->fresh()->status,
