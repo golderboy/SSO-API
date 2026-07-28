@@ -8,7 +8,10 @@ use App\Exceptions\BrokerRequestException;
 use App\Models\AccessGrant;
 use App\Models\ApplicationSsoConfig;
 use App\Models\AuthenticationTransaction;
+use App\Models\SsoSubject;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Passport\Passport;
 use LogicException;
@@ -197,6 +200,321 @@ class AuthenticationTransactionService
                 'status' => AuthenticationTransactionStatus::Denied->value,
                 'updated_at' => now(),
             ]);
+    }
+
+    public function pendingUpstreamCallback(
+        Request $request,
+        IdentityProvider $provider,
+    ): AuthenticationTransaction {
+        $publicId = $request->session()->get(
+            'sso.pending_upstream_transaction',
+        );
+        $transaction = is_string($publicId)
+            ? AuthenticationTransaction::query()
+                ->with([
+                    'ssoConfig.application',
+                    'ssoConfig.oauthClient',
+                ])
+                ->where('public_id', $publicId)
+                ->first()
+            : null;
+
+        if (
+            $transaction === null
+            || $transaction->status
+                !== AuthenticationTransactionStatus::ProviderSelected
+            || $transaction->selected_provider !== $provider
+            || $transaction->isExpired()
+            || ! hash_equals(
+                $transaction->browser_session_hash,
+                $this->browserSessionHash($request),
+            )
+            || ! $transaction->ssoConfig?->application?->is_active
+            || $transaction->ssoConfig?->oauthClient === null
+            || $transaction->ssoConfig->oauthClient->revoked
+            || ! $transaction->ssoConfig->oauthClient->hasGrantType(
+                'authorization_code',
+            )
+            || ! in_array(
+                $transaction->downstream_request['redirect_uri'] ?? null,
+                $transaction->ssoConfig->oauthClient->redirect_uris,
+                true,
+            )
+            || ! $transaction->ssoConfig->allowed_providers->contains(
+                $provider,
+            )
+        ) {
+            throw new BrokerRequestException(
+                'access_denied',
+                'The upstream authorization transaction is invalid or expired.',
+                403,
+            );
+        }
+
+        return $transaction;
+    }
+
+    public function assertUpstreamState(
+        AuthenticationTransaction $transaction,
+        string $state,
+    ): void {
+        if (
+            preg_match('/^[A-Za-z0-9._~-]{16,512}$/D', $state) !== 1
+            || $transaction->upstream_state_hash === null
+            || ! hash_equals(
+                $transaction->upstream_state_hash,
+                $this->opaqueValueHash($state),
+            )
+        ) {
+            throw new BrokerRequestException(
+                'access_denied',
+                'The upstream authorization state is invalid.',
+                403,
+            );
+        }
+    }
+
+    public function claimUpstreamAuthentication(
+        AuthenticationTransaction $transaction,
+    ): AuthenticationTransaction {
+        $updated = AuthenticationTransaction::query()
+            ->whereKey($transaction->id)
+            ->where(
+                'status',
+                AuthenticationTransactionStatus::ProviderSelected->value,
+            )
+            ->where('expires_at', '>', now())
+            ->update([
+                'status' => AuthenticationTransactionStatus::Authenticating
+                    ->value,
+                'updated_at' => now(),
+            ]);
+
+        if ($updated !== 1) {
+            throw new BrokerRequestException(
+                'access_denied',
+                'The upstream callback has already been processed.',
+                409,
+            );
+        }
+
+        return $transaction->refresh();
+    }
+
+    public function requireOrganizationSelection(
+        Request $request,
+        AuthenticationTransaction $transaction,
+        User $user,
+    ): AuthenticationTransaction {
+        $updated = AuthenticationTransaction::query()
+            ->whereKey($transaction->id)
+            ->where(
+                'status',
+                AuthenticationTransactionStatus::Authenticating->value,
+            )
+            ->update([
+                'status' => AuthenticationTransactionStatus::OrganizationRequired->value,
+                'user_id' => $user->id,
+                'authenticated_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        if ($updated !== 1) {
+            throw new BrokerRequestException(
+                'access_denied',
+                'The authorization transaction could not be updated.',
+                409,
+            );
+        }
+
+        $request->session()->forget('sso.pending_upstream_transaction');
+        $request->session()->put(
+            'sso.pending_organization_transaction',
+            $transaction->public_id,
+        );
+        $request->session()->regenerate();
+
+        return $transaction->refresh();
+    }
+
+    public function approveWithGrant(
+        Request $request,
+        AuthenticationTransaction $transaction,
+        User $user,
+        AccessGrant $grant,
+    ): AuthenticationTransaction {
+        $transaction->loadMissing('ssoConfig.application');
+        $allowedStatuses = [
+            AuthenticationTransactionStatus::Authenticating->value,
+            AuthenticationTransactionStatus::OrganizationRequired->value,
+        ];
+
+        if (
+            ! $user->is_active
+            || ! $transaction->ssoConfig?->application?->is_active
+            || $grant->user_id !== $user->id
+            || $grant->application_id
+                !== $transaction->ssoConfig->application_id
+        ) {
+            throw new BrokerRequestException(
+                'access_denied',
+                'The access grant does not match the authorization transaction.',
+                403,
+            );
+        }
+
+        DB::transaction(function () use (
+            $allowedStatuses,
+            $grant,
+            $transaction,
+            $user,
+        ): void {
+            $effectiveGrant = AccessGrant::query()
+                ->effective()
+                ->with('organization')
+                ->whereKey($grant->id)
+                ->where('user_id', $user->id)
+                ->where(
+                    'application_id',
+                    $transaction->ssoConfig->application_id,
+                )
+                ->lockForUpdate()
+                ->first();
+
+            if (
+                $effectiveGrant === null
+                || ($transaction->ssoConfig->application
+                    ->require_organization_match
+                    && $effectiveGrant->organization_id === null)
+                || ($effectiveGrant->organization_id !== null
+                    && ($effectiveGrant->organization === null
+                        || ! $effectiveGrant->organization->is_active))
+            ) {
+                throw new BrokerRequestException(
+                    'access_denied',
+                    'The access grant is no longer effective.',
+                    403,
+                );
+            }
+
+            SsoSubject::query()->firstOrCreate(['user_id' => $user->id]);
+            $updated = AuthenticationTransaction::query()
+                ->whereKey($transaction->id)
+                ->whereIn('status', $allowedStatuses)
+                ->where('expires_at', '>', now())
+                ->update([
+                    'status' => AuthenticationTransactionStatus::Approved
+                        ->value,
+                    'user_id' => $user->id,
+                    'access_grant_id' => $effectiveGrant->id,
+                    'organization_id' => $effectiveGrant->organization_id,
+                    'authenticated_at' => $transaction->authenticated_at
+                        ?? now(),
+                    'updated_at' => now(),
+                ]);
+
+            if ($updated !== 1) {
+                throw new BrokerRequestException(
+                    'access_denied',
+                    'The authorization transaction could not be approved.',
+                    409,
+                );
+            }
+        }, 3);
+
+        $request->session()->forget([
+            'sso.pending_upstream_transaction',
+            'sso.pending_organization_transaction',
+        ]);
+        $request->session()->put(
+            'sso.approved_transaction',
+            $transaction->public_id,
+        );
+        $request->session()->regenerate();
+
+        return $transaction->refresh();
+    }
+
+    public function pendingOrganizationSelection(
+        Request $request,
+        AuthenticationTransaction $transaction,
+    ): AuthenticationTransaction {
+        $pendingId = $request->session()->get(
+            'sso.pending_organization_transaction',
+        );
+        $transaction->loadMissing([
+            'user',
+            'ssoConfig.application',
+            'ssoConfig.oauthClient',
+        ]);
+
+        if (
+            ! is_string($pendingId)
+            || ! hash_equals($transaction->public_id, $pendingId)
+            || $transaction->status
+                !== AuthenticationTransactionStatus::OrganizationRequired
+            || $transaction->isExpired()
+            || ! hash_equals(
+                $transaction->browser_session_hash,
+                $this->browserSessionHash($request),
+            )
+            || $transaction->user === null
+            || ! $transaction->user->is_active
+            || ! $transaction->ssoConfig?->application?->is_active
+            || $transaction->ssoConfig?->oauthClient === null
+            || $transaction->ssoConfig->oauthClient->revoked
+            || ! $transaction->ssoConfig->oauthClient->hasGrantType(
+                'authorization_code',
+            )
+            || ! in_array(
+                $transaction->downstream_request['redirect_uri'] ?? null,
+                $transaction->ssoConfig->oauthClient->redirect_uris,
+                true,
+            )
+        ) {
+            throw new BrokerRequestException(
+                'access_denied',
+                'The organization selection transaction is invalid or expired.',
+                403,
+            );
+        }
+
+        return $transaction;
+    }
+
+    public function deny(
+        Request $request,
+        ?AuthenticationTransaction $transaction,
+    ): void {
+        if ($transaction !== null) {
+            AuthenticationTransaction::query()
+                ->whereKey($transaction->id)
+                ->whereNotIn('status', [
+                    AuthenticationTransactionStatus::Consumed->value,
+                    AuthenticationTransactionStatus::Denied->value,
+                ])
+                ->update([
+                    'status' => AuthenticationTransactionStatus::Denied->value,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        $request->session()->forget([
+            'sso.pending_upstream_transaction',
+            'sso.pending_organization_transaction',
+            'sso.approved_transaction',
+        ]);
+    }
+
+    public function downstreamAuthorizationUrl(
+        AuthenticationTransaction $transaction,
+    ): string {
+        return url('/authorize').'?'.http_build_query(
+            $transaction->downstream_request,
+            '',
+            '&',
+            PHP_QUERY_RFC3986,
+        );
     }
 
     public function selectProvider(

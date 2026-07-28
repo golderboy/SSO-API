@@ -402,8 +402,9 @@ CREATE TABLE IF NOT EXISTS `authentication_transactions` (
         ON DELETE SET NULL,
     CONSTRAINT `authentication_transactions_status_check`
         CHECK (`status` IN (
-            'pending', 'provider_selected', 'organization_required',
-            'approved', 'issuing', 'consumed', 'denied'
+            'pending', 'provider_selected', 'authenticating',
+            'organization_required', 'approved', 'issuing', 'consumed',
+            'denied'
         )),
     CONSTRAINT `authentication_transactions_provider_check`
         CHECK (
@@ -455,4 +456,5 @@ INSERT IGNORE INTO `migrations` (`migration`, `batch`) VALUES
     ('2026_07_27_063324_add_provider_cid_hash_to_users_table', 1),
     ('2026_07_27_063325_create_external_identities_table', 1),
     ('2026_07_27_063326_create_application_sso_configs_table', 1),
-    ('2026_07_27_063327_create_authentication_transactions_table', 1);
+    ('2026_07_27_063327_create_authentication_transactions_table', 1),
+    ('2026_07_27_063328_add_authenticating_transaction_status', 1);

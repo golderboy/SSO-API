@@ -71,6 +71,12 @@ sequenceDiagram
   access grant, callback และ client ซ้ำอีกครั้ง
 - การออก code ใช้ atomic state transition `approved` → `issuing` → `consumed`
   เพื่อป้องกันคำขอซ้ำพร้อมกัน; หากขั้นออก code ผิดพลาดให้จบเป็น `denied`
+- upstream callback ใช้ atomic state transition
+  `provider_selected` → `authenticating` ก่อนแลก code เพื่อป้องกัน callback ซ้ำ
+- ThaID callback ภายใน Laravel คือ `/sso/callback/thaid` และเผยแพร่ผ่าน Apache
+  เป็น `https://sobmoeiservice.moph.go.th/call/sso/callback/thaid`
+- state ที่ผิดหรือ callback ที่ไม่ผูกกับ browser session จะไม่แลก code และไม่เปลี่ยน
+  transaction ที่ยังรอ callback; callback ที่ claim แล้วแต่ยืนยันไม่ผ่านจะจบเป็น `denied`
 
 ## Provider boundary ที่ยืนยันแล้ว
 
@@ -131,7 +137,7 @@ sequenceDiagram
 
 - provider timeout: fail closed และให้ retry เริ่ม transaction ใหม่
 - policy database unavailable: fail closed
-- state/nonce/code invalid: ยุติ transaction และบันทึก security event
+- state/nonce/code invalid: ปฏิเสธโดยไม่แลก upstream code และบันทึก security event
 - transaction หมดอายุ, browser session ไม่ตรง หรือ downstream request ถูกเปลี่ยน:
   ปฏิเสธและไม่ออก authorization code
 - organization หลายแห่ง: เลือกจาก intersection ระหว่าง provider profile กับ local grant

@@ -47,6 +47,15 @@ return [
         'revocation_url' => env('THAID_REVOCATION_URL'),
         'discovery_url' => env('THAID_DISCOVERY_URL'),
         'scopes' => env('THAID_SCOPES', 'pid name openid'),
+        'clock_skew_seconds' => (int) env('THAID_CLOCK_SKEW_SECONDS', 60),
+        'discovery_cache_seconds' => (int) env(
+            'THAID_DISCOVERY_CACHE_SECONDS',
+            300,
+        ),
+        'jwks_cache_seconds' => (int) env(
+            'THAID_JWKS_CACHE_SECONDS',
+            300,
+        ),
     ],
 
     'moph_id' => [

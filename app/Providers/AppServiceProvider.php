@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\ThaIdIdentityProvider;
+use App\Services\ThaIdIdentityProvider as ThaIdIdentityProviderService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -14,7 +16,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            ThaIdIdentityProvider::class,
+            ThaIdIdentityProviderService::class,
+        );
     }
 
     /**
@@ -48,6 +53,17 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('application-auth', function (Request $request): Limit {
             return Limit::perMinute(60)->by((string) $request->ip());
+        });
+
+        RateLimiter::for('sso-browser', function (Request $request): Limit {
+            $binding = $request->hasSession()
+                ? $request->session()->get('sso.browser_binding')
+                : null;
+
+            return Limit::perMinute(30)->by(
+                (is_string($binding) ? $binding : 'no-session')
+                    .'|'.$request->ip(),
+            );
         });
     }
 }

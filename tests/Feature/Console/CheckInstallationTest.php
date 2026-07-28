@@ -44,7 +44,7 @@ class CheckInstallationTest extends TestCase
         config([
             'services.thaid.client_id' => 'test-client',
             'services.thaid.client_secret' => 'test-secret',
-            'services.thaid.redirect_uri' => 'https://sso.example.test/thaid/callback',
+            'services.thaid.redirect_uri' => 'https://sso.example.test/sso/callback/thaid',
             'services.thaid.issuer' => 'https://imauth.bora.dopa.go.th',
             'services.thaid.authorization_url' => 'https://imauth.bora.dopa.go.th/auth',
             'services.thaid.token_url' => 'https://imauth.bora.dopa.go.th/token',
@@ -72,6 +72,27 @@ class CheckInstallationTest extends TestCase
         ]);
 
         $this->artisan('sso:check-installation')
+            ->expectsOutputToContain('Installation check failed.')
+            ->assertFailed();
+    }
+
+    public function test_provider_check_rejects_mismatched_thaid_callback(): void
+    {
+        config([
+            'services.thaid.enabled' => true,
+            'services.thaid.client_id' => 'test-client',
+            'services.thaid.client_secret' => 'test-secret',
+            'services.thaid.redirect_uri' => 'https://sso.example.test/wrong',
+            'services.thaid.issuer' => 'https://imauth.bora.dopa.go.th',
+            'services.thaid.authorization_url' => 'https://imauth.bora.dopa.go.th/auth',
+            'services.thaid.token_url' => 'https://imauth.bora.dopa.go.th/token',
+            'services.thaid.introspection_url' => 'https://imauth.bora.dopa.go.th/introspect',
+            'services.thaid.revocation_url' => 'https://imauth.bora.dopa.go.th/revoke',
+            'services.thaid.discovery_url' => 'https://imauth.bora.dopa.go.th/discovery',
+        ]);
+
+        $this->artisan('sso:check-installation')
+            ->expectsOutputToContain('ThaID callback URI')
             ->expectsOutputToContain('Installation check failed.')
             ->assertFailed();
     }

@@ -15,7 +15,6 @@ class EnvironmentTemplateTest extends TestCase
         foreach ([
             'THAID_CLIENT_ID',
             'THAID_CLIENT_SECRET',
-            'THAID_REDIRECT_URI',
             'HEALTH_ID_CLIENT_ID',
             'HEALTH_ID_CLIENT_SECRET',
             'HEALTH_ID_REDIRECT_URI',
@@ -27,6 +26,13 @@ class EnvironmentTemplateTest extends TestCase
                 $template,
             );
         }
+
+        $this->assertMatchesRegularExpression(
+            '#^THAID_REDIRECT_URI='
+                .'https://sobmoeiservice\.moph\.go\.th/'
+                .'call/sso/callback/thaid$#m',
+            $template,
+        );
     }
 
     public function test_almalinux_template_contains_no_application_or_lookup_secret(): void
@@ -67,6 +73,9 @@ class EnvironmentTemplateTest extends TestCase
             'SSO_ACCESS_TOKEN_TTL_MINUTES=30',
             'SSO_REFRESH_TOKEN_TTL_MINUTES=30',
             'PASSPORT_KEY_PATH=/etc/sobmoei/oauth',
+            'THAID_CLOCK_SKEW_SECONDS=60',
+            'THAID_DISCOVERY_CACHE_SECONDS=300',
+            'THAID_JWKS_CACHE_SECONDS=300',
         ] as $setting) {
             $this->assertMatchesRegularExpression(
                 '/^'.preg_quote($setting, '/').'$/m',

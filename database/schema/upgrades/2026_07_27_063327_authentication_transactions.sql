@@ -45,8 +45,9 @@ CREATE TABLE `authentication_transactions` (
         ON DELETE SET NULL,
     CONSTRAINT `authentication_transactions_status_check`
         CHECK (`status` IN (
-            'pending', 'provider_selected', 'organization_required',
-            'approved', 'issuing', 'consumed', 'denied'
+            'pending', 'provider_selected', 'authenticating',
+            'organization_required', 'approved', 'issuing', 'consumed',
+            'denied'
         )),
     CONSTRAINT `authentication_transactions_provider_check`
         CHECK (

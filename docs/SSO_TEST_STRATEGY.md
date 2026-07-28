@@ -15,6 +15,9 @@
 ### Integration tests
 
 - mock ThaID adapter และ MOPH ID flow (Health ID → Provider ID)
+- ThaID callback: verified token, exact state/session binding, unknown CID,
+  access-grant policy และการเลือกหน่วยงานหลายแห่ง
+- callback ซ้ำต้องแลก upstream code ได้เพียงครั้งเดียวด้วยสถานะ `authenticating`
 - database transaction และ concurrent code exchange
 - key rotation
 - provider timeout/retry/circuit breaker

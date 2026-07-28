@@ -30,6 +30,7 @@ upstream identity ที่ตรวจสอบแล้วจับคู่�
 - `CID_LOOKUP_KEY`
 - `PROVIDER_CID_LOOKUP_KEY`
 - `EXTERNAL_SUBJECT_LOOKUP_KEY`
+- `TRANSACTION_HASH_KEY`
 - `AUDIT_HASH_KEY`
 
 การเปลี่ยน lookup key ต้องมี migration/rotation plan เพราะ hash เดิมจะค้นไม่เจอ

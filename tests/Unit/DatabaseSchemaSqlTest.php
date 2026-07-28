@@ -57,6 +57,7 @@ class DatabaseSchemaSqlTest extends TestCase
             '2026_07_27_063325_create_external_identities_table',
             '2026_07_27_063326_create_application_sso_configs_table',
             '2026_07_27_063327_create_authentication_transactions_table',
+            '2026_07_27_063328_add_authenticating_transaction_status',
         ] as $migration) {
             $this->assertStringContainsString($migration, $sql);
         }
@@ -240,5 +241,24 @@ class DatabaseSchemaSqlTest extends TestCase
             $rollback,
         );
         $this->assertStringNotContainsString('upstream_state`', $upgrade);
+    }
+
+    public function test_authenticating_status_upgrade_has_guarded_rollback(): void
+    {
+        $base = dirname(__DIR__, 2).'/database/schema/upgrades/';
+        $upgrade = (string) file_get_contents(
+            $base.'2026_07_27_063328_authenticating_transaction_status.sql',
+        );
+        $rollback = (string) file_get_contents(
+            $base
+                .'2026_07_27_063328_authenticating_transaction_status_rollback.sql',
+        );
+
+        $this->assertStringContainsString("'authenticating'", $upgrade);
+        $this->assertStringContainsString(
+            'sso_assert_no_authenticating_transactions',
+            $rollback,
+        );
+        $this->assertStringContainsString("SIGNAL SQLSTATE '45000'", $rollback);
     }
 }

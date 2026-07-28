@@ -334,10 +334,12 @@ class CheckInstallation extends Command
     private function checkProviders(): void
     {
         $requireProviders = (bool) $this->option('providers');
+        $requireThaId = $requireProviders
+            || (bool) config('services.thaid.enabled');
 
         $this->checkProviderGroup(
             'ThaID',
-            $requireProviders || (bool) config('services.thaid.enabled'),
+            $requireThaId,
             [
                 'client_id' => config('services.thaid.client_id'),
                 'client_secret' => config('services.thaid.client_secret'),
@@ -350,6 +352,40 @@ class CheckInstallation extends Command
                 'discovery_url' => config('services.thaid.discovery_url'),
             ],
         );
+
+        if ($requireThaId) {
+            $expectedCallback = rtrim(
+                (string) config('app.url'),
+                '/',
+            ).'/sso/callback/thaid';
+            $actualCallback = config('services.thaid.redirect_uri');
+
+            $this->record(
+                'ThaID callback URI',
+                is_string($actualCallback)
+                    && hash_equals($expectedCallback, $actualCallback),
+                'must exactly match APP_URL/sso/callback/thaid',
+            );
+            $this->record(
+                'ThaID validation settings',
+                $this->integerInRange(
+                    config('services.thaid.clock_skew_seconds'),
+                    0,
+                    300,
+                )
+                    && $this->integerInRange(
+                        config('services.thaid.discovery_cache_seconds'),
+                        60,
+                        3600,
+                    )
+                    && $this->integerInRange(
+                        config('services.thaid.jwks_cache_seconds'),
+                        60,
+                        3600,
+                    ),
+                'clock skew must be 0-300 seconds; cache TTLs must be 60-3600 seconds',
+            );
+        }
 
         $this->checkProviderGroup(
             'MOPH ID',
@@ -408,5 +444,15 @@ class CheckInstallation extends Command
     private function record(string $name, bool $passed, string $detail): void
     {
         $this->checks[] = [$name, $passed, $detail];
+    }
+
+    private function integerInRange(
+        mixed $value,
+        int $minimum,
+        int $maximum,
+    ): bool {
+        return is_int($value)
+            && $value >= $minimum
+            && $value <= $maximum;
     }
 }

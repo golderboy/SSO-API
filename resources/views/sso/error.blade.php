@@ -11,6 +11,9 @@
     <h1>ไม่สามารถเข้าสู่ระบบได้</h1>
     <p>{{ $message }}</p>
     <p>รหัสข้อผิดพลาด: {{ $error }}</p>
+    @isset($correlationId)
+        <p>รหัสอ้างอิง: {{ $correlationId }}</p>
+    @endisset
 </main>
 </body>
 </html>
