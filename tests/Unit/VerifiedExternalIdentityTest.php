@@ -35,15 +35,33 @@ class VerifiedExternalIdentityTest extends TestCase
     public function test_provider_id_normalizes_verified_hash_cid(): void
     {
         $hash = strtoupper(hash('sha256', '1000000000009'));
-        $identity = VerifiedExternalIdentity::providerId('account-id', $hash);
+        $identity = VerifiedExternalIdentity::providerId(
+            'account-id',
+            $hash,
+            ['00123', ' ab_cd ', '00123'],
+        );
 
         $this->assertSame(IdentityProvider::ProviderId, $identity->provider);
         $this->assertSame(strtolower($hash), $identity->identityMatchValue);
+        $this->assertSame(
+            ['00123', 'ab_cd'],
+            $identity->organizationHcodes,
+        );
     }
 
     public function test_provider_id_rejects_non_sha256_hash_cid(): void
     {
         $this->expectException(InvalidArgumentException::class);
         VerifiedExternalIdentity::providerId('account-id', 'not-a-hash');
+    }
+
+    public function test_provider_id_rejects_invalid_organization_hcode(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        VerifiedExternalIdentity::providerId(
+            'account-id',
+            hash('sha256', '1000000000009'),
+            ['valid', '../invalid'],
+        );
     }
 }

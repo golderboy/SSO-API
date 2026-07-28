@@ -15,7 +15,7 @@ class ProviderAuthorizationUrlService
     ): string {
         return match ($provider) {
             IdentityProvider::ThaId => $this->thaIdUrl($state),
-            IdentityProvider::ProviderId => $this->healthIdUrl(),
+            IdentityProvider::ProviderId => $this->healthIdUrl($state),
         };
     }
 
@@ -33,7 +33,7 @@ class ProviderAuthorizationUrlService
         ], '', '&', PHP_QUERY_RFC3986);
     }
 
-    private function healthIdUrl(): string
+    private function healthIdUrl(string $state): string
     {
         $this->assertEnabled('services.moph_id.enabled');
         $baseUrl = rtrim(
@@ -60,6 +60,7 @@ class ProviderAuthorizationUrlService
                 'services.moph_id.health_id.redirect_uri',
             ),
             'response_type' => 'code',
+            'state' => $state,
         ], '', '&', PHP_QUERY_RFC3986);
     }
 

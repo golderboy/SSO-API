@@ -227,14 +227,25 @@ class BrokerAuthorizationRequestTest extends TestCase
             'https://health.example.test/oauth/redirect',
             strtok($location, '?'),
         );
+        $this->assertIsString($query['state'] ?? null);
+        $this->assertSame(64, strlen($query['state']));
         $this->assertSame([
             'client_id' => 'health-test-client',
             'redirect_uri' => 'https://sso.example.test/sso/callback/provider-id',
             'response_type' => 'code',
+            'state' => $query['state'],
         ], $query);
         $this->assertSame(
             AuthenticationTransactionStatus::ProviderSelected,
             $transaction->fresh()->status,
+        );
+        $this->assertSame(
+            hash_hmac(
+                'sha256',
+                $query['state'],
+                str_repeat('t', 32),
+            ),
+            $transaction->fresh()->upstream_state_hash,
         );
     }
 

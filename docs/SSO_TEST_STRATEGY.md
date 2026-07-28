@@ -18,6 +18,9 @@
 - ThaID callback: verified token, exact state/session binding, unknown CID,
   access-grant policy และการเลือกหน่วยงานหลายแห่ง
 - callback ซ้ำต้องแลก upstream code ได้เพียงครั้งเดียวด้วยสถานะ `authenticating`
+- Health ID authorization request ต้องส่ง state และเก็บเฉพาะ keyed hash
+- Provider ID organization ต้อง intersect กับ local effective grant ด้วย exact hcode;
+  organization ว่างหรือ global grant ต้องไม่ผ่าน Provider ID policy
 - database transaction และ concurrent code exchange
 - key rotation
 - provider timeout/retry/circuit breaker

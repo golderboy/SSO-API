@@ -86,6 +86,9 @@ sequenceDiagram
 2. `MOPH_ID` ของกระทรวงสาธารณสุข เป็น flow เดียวที่ใช้ Health ID
    สำหรับ authentication/token ก่อนแลก Provider ID token และอ่าน profile/organization
 
+Health ID authorization request ต้องส่ง `state` แม้เอกสารระบุว่า optional เพราะระบบนี้
+ใช้ `state` ผูก callback กับ transaction และ browser session แบบ fail closed
+
 แม้ `MOPH_ID` ต้องใช้ `HEALTH_ID_*` และ `PROVIDER_ID_*` คนละชุดทางเทคนิค
 แต่ต้องเปิด/ปิดและประเมินผลเป็น provider section เดียว ห้ามเลือก Provider ID
 โดยข้ามขั้น Health ID
@@ -95,6 +98,8 @@ sequenceDiagram
 - ThaID: ตรวจ ID Token/introspection ก่อนใช้ `sub` และ `pid`
 - Provider ID: ตรวจ Health ID token, แลก Provider ID token และตรวจ profile
   ก่อนใช้ `account_id` กับ `hash_cid`
+- Provider ID organization เก็บในหน่วยความจำเฉพาะ `hcode` ที่ผ่านรูปแบบ
+  `[A-Za-z0-9_-]{1,20}` และใช้เป็นตัวกรอง intersection เท่านั้น
 - `hash_cid` ตามเอกสารเป็น SHA-256(CID); ระบบ HMAC ค่านี้ซ้ำด้วย
   `PROVIDER_CID_LOOKUP_KEY` ก่อนค้นฐานข้อมูล
 - external subject ทุก provider ถูก HMAC ด้วย `EXTERNAL_SUBJECT_LOOKUP_KEY`

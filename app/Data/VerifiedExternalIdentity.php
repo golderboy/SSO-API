@@ -11,6 +11,8 @@ final readonly class VerifiedExternalIdentity
         public IdentityProvider $provider,
         public string $subject,
         public string $identityMatchValue,
+        /** @var list<string> */
+        public array $organizationHcodes,
     ) {}
 
     public static function thaId(string $subject, string $pid): self
@@ -27,12 +29,14 @@ final readonly class VerifiedExternalIdentity
             IdentityProvider::ThaId,
             self::validSubject($subject),
             $normalizedPid,
+            [],
         );
     }
 
     public static function providerId(
         string $accountId,
         string $providerCidSha256,
+        array $organizationHcodes = [],
     ): self {
         $normalizedHash = strtolower(trim($providerCidSha256));
 
@@ -49,7 +53,40 @@ final readonly class VerifiedExternalIdentity
             IdentityProvider::ProviderId,
             self::validSubject($accountId),
             $normalizedHash,
+            self::validOrganizationHcodes($organizationHcodes),
         );
+    }
+
+    /**
+     * @param  array<mixed>  $organizationHcodes
+     * @return list<string>
+     */
+    private static function validOrganizationHcodes(
+        array $organizationHcodes,
+    ): array {
+        $normalized = [];
+
+        foreach ($organizationHcodes as $hcode) {
+            if (! is_string($hcode)) {
+                throw new InvalidArgumentException(
+                    'Provider ID returned an invalid organization hcode.',
+                );
+            }
+
+            $hcode = trim($hcode);
+
+            if (
+                preg_match('/^[A-Za-z0-9_-]{1,20}$/D', $hcode) !== 1
+            ) {
+                throw new InvalidArgumentException(
+                    'Provider ID returned an invalid organization hcode.',
+                );
+            }
+
+            $normalized[] = $hcode;
+        }
+
+        return array_values(array_unique($normalized));
     }
 
     private static function validSubject(string $subject): string
