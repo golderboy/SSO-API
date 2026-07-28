@@ -10,15 +10,19 @@ require_once __DIR__.'/bootstrap.php';
 testsso_start_session();
 testsso_security_headers();
 
-try {
-    $config = testsso_config();
-} catch (SsoClientException) {
+$query = $_GET;
+$loginRequested = ($query['login'] ?? null) === '1';
+
+if (
+    array_diff(array_keys($query), ['login']) !== []
+    || (array_key_exists('login', $query) && ! $loginRequested)
+) {
     $correlationId = testsso_correlation_id();
-    testsso_record_error($correlationId, 'configuration_invalid', 503);
+    testsso_record_error($correlationId, 'callback_invalid', 400);
     testsso_render_error(
-        'การตั้งค่าระบบทดสอบยังไม่พร้อม กรุณาแจ้งผู้ดูแลระบบ',
+        'คำขอเริ่มต้นเข้าสู่ระบบไม่ถูกต้อง',
         $correlationId,
-        503,
+        400,
     );
 }
 
@@ -32,6 +36,67 @@ if (
     || $authentication['expires_at'] <= $now
 ) {
     unset($_SESSION['testsso_auth'], $_SESSION['testsso_logout_csrf']);
+
+    try {
+        $config = testsso_config();
+        $configurationReady = true;
+    } catch (SsoClientException) {
+        $configurationReady = false;
+        $config = [];
+    }
+
+    if (! $loginRequested) {
+        $statusClass = $configurationReady
+            ? 'state-icon--success'
+            : 'state-icon--error';
+        $statusTitle = $configurationReady
+            ? 'ระบบทดสอบพร้อมเริ่มการเข้าสู่ระบบ'
+            : 'การตั้งค่าระบบทดสอบยังไม่พร้อม';
+        $statusMessage = $configurationReady
+            ? 'กดปุ่มด้านล่างเพื่อเข้าสู่ Sobmoei SSO และเลือกผู้ให้บริการยืนยันตัวตน'
+            : 'ยังไม่พบ OAuth client configuration ที่ใช้งานได้ กรุณาติดตั้ง /etc/sobmoei/testsso.php ก่อนเริ่มทดสอบ';
+        $action = $configurationReady
+            ? '<a class="button button--primary" href="index.php?login=1">เข้าสู่ระบบด้วย Sobmoei SSO</a>'
+            : '<span class="button button--secondary" aria-disabled="true">ยังไม่พร้อมเข้าสู่ระบบ</span>';
+        $main = <<<HTML
+            <section class="state-layout" aria-labelledby="login-heading">
+                <div class="state-panel">
+                    <div class="state-icon {$statusClass}" aria-hidden="true">
+                        <svg viewBox="0 0 48 48">
+                            <path d="M24 6v20m0 8v8"/>
+                        </svg>
+                    </div>
+                    <h1 id="login-heading">{$statusTitle}</h1>
+                    <p>{$statusMessage}</p>
+                </div>
+                <div class="state-actions">
+                    {$action}
+                </div>
+            </section>
+            HTML;
+
+        testsso_render_document(
+            'ทดสอบการเข้าสู่ระบบ',
+            $main,
+            $configurationReady ? 200 : 503,
+            false,
+        );
+    }
+
+    if (! $configurationReady) {
+        $correlationId = testsso_correlation_id();
+        testsso_record_error(
+            $correlationId,
+            'configuration_invalid',
+            503,
+        );
+        testsso_render_error(
+            'การตั้งค่าระบบทดสอบยังไม่พร้อม กรุณาแจ้งผู้ดูแลระบบ',
+            $correlationId,
+            503,
+        );
+    }
+
     $transaction = SsoClient::newTransaction($now);
     $_SESSION['testsso_oauth_transaction'] = $transaction;
 

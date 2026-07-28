@@ -249,6 +249,34 @@ class BrokerAuthorizationRequestTest extends TestCase
         );
     }
 
+    public function test_provider_id_selection_rejects_unsafe_health_authorization_path(): void
+    {
+        [, $client] = $this->oauthApplication(
+            ['provider_id'],
+        );
+        config([
+            'services.moph_id.enabled' => true,
+            'services.moph_id.health_id.client_id' => 'health-client',
+            'services.moph_id.health_id.redirect_uri' => 'https://sso.example.test/sso/callback/provider-id',
+            'services.moph_id.health_id.base_url' => 'https://health.example.test',
+            'services.moph_id.health_id.authorization_path' => '/oauth/redirect?target=attacker',
+        ]);
+        $this->get('/authorize?'.http_build_query(
+            $this->authorizationParameters($client),
+        ))->assertOk();
+        $transaction = AuthenticationTransaction::query()->sole();
+
+        $this->post(
+            route('sso.broker.select-provider', $transaction, false),
+            ['provider' => IdentityProvider::ProviderId->value],
+        )->assertServiceUnavailable();
+
+        $this->assertSame(
+            AuthenticationTransactionStatus::Pending,
+            $transaction->fresh()->status,
+        );
+    }
+
     public function test_provider_not_allowed_for_application_is_rejected(): void
     {
         [, $client] = $this->oauthApplication(['thaid']);

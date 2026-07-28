@@ -60,6 +60,14 @@ return [
 
     'moph_id' => [
         'enabled' => (bool) env('MOPH_ID_ENABLED', false),
+        'clock_skew_seconds' => (int) env(
+            'MOPH_ID_CLOCK_SKEW_SECONDS',
+            60,
+        ),
+        'public_key_cache_seconds' => (int) env(
+            'PROVIDER_ID_PUBLIC_KEY_CACHE_SECONDS',
+            300,
+        ),
         'health_id' => [
             'client_id' => env('HEALTH_ID_CLIENT_ID'),
             'client_secret' => env('HEALTH_ID_CLIENT_SECRET'),

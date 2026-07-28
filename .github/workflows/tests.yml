@@ -124,5 +124,8 @@ jobs:
       - name: Test
         run: php artisan test
 
+      - name: Check deployment script syntax
+        run: bash -n scripts/setup-testsso-client.sh
+
       - name: Check PHP style
         run: vendor/bin/pint --test

@@ -387,9 +387,12 @@ class CheckInstallation extends Command
             );
         }
 
+        $requireMophId = $requireProviders
+            || (bool) config('services.moph_id.enabled');
+
         $this->checkProviderGroup(
             'MOPH ID',
-            $requireProviders || (bool) config('services.moph_id.enabled'),
+            $requireMophId,
             [
                 'health_client_id' => config('services.moph_id.health_id.client_id'),
                 'health_client_secret' => config('services.moph_id.health_id.client_secret'),
@@ -400,6 +403,64 @@ class CheckInstallation extends Command
                 'provider_base_url' => config('services.moph_id.provider_id.base_url'),
             ],
         );
+
+        if ($requireMophId) {
+            $expectedCallback = rtrim(
+                (string) config('app.url'),
+                '/',
+            ).'/sso/callback/provider-id';
+            $actualCallback = config(
+                'services.moph_id.health_id.redirect_uri',
+            );
+
+            $this->record(
+                'MOPH ID callback URI',
+                is_string($actualCallback)
+                    && hash_equals($expectedCallback, $actualCallback),
+                'must exactly match APP_URL/sso/callback/provider-id',
+            );
+            $this->record(
+                'MOPH ID validation settings',
+                $this->integerInRange(
+                    config('services.moph_id.clock_skew_seconds'),
+                    0,
+                    300,
+                )
+                    && $this->integerInRange(
+                        config(
+                            'services.moph_id.public_key_cache_seconds',
+                        ),
+                        60,
+                        3600,
+                    ),
+                'clock skew must be 0-300 seconds; public key cache TTL must be 60-3600 seconds',
+            );
+            $paths = [
+                config(
+                    'services.moph_id.health_id.authorization_path',
+                ),
+                config('services.moph_id.health_id.token_path'),
+                config('services.moph_id.provider_id.token_path'),
+                config('services.moph_id.provider_id.profile_path'),
+                config(
+                    'services.moph_id.provider_id.public_key_path',
+                ),
+            ];
+            $this->record(
+                'MOPH ID endpoint paths',
+                collect($paths)->every(
+                    fn (mixed $path): bool => is_string($path)
+                        && preg_match(
+                            '#^/[A-Za-z0-9/_-]+$#D',
+                            $path,
+                        ) === 1
+                        && ! str_contains($path, '//')
+                        && ! str_contains($path, '/./')
+                        && ! str_contains($path, '/../'),
+                ),
+                'must be absolute provider paths without query, fragment, or dot segments',
+            );
+        }
     }
 
     /**

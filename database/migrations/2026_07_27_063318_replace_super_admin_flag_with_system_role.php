@@ -51,6 +51,7 @@ return new class extends Migration
         }
 
         Schema::table('users', function (Blueprint $table): void {
+            $table->dropIndex('users_is_super_admin_index');
             $table->dropColumn('is_super_admin');
         });
     }

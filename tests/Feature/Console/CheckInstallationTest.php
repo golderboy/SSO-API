@@ -53,7 +53,7 @@ class CheckInstallationTest extends TestCase
             'services.thaid.discovery_url' => 'https://imauth.bora.dopa.go.th/discovery',
             'services.moph_id.health_id.client_id' => 'test-health-client',
             'services.moph_id.health_id.client_secret' => 'test-health-secret',
-            'services.moph_id.health_id.redirect_uri' => 'https://sso.example.test/moph/callback',
+            'services.moph_id.health_id.redirect_uri' => 'https://sso.example.test/sso/callback/provider-id',
             'services.moph_id.health_id.base_url' => 'https://uat-moph.id.th',
             'services.moph_id.provider_id.client_id' => 'test-provider-client',
             'services.moph_id.provider_id.secret_key' => 'test-provider-secret',
@@ -72,6 +72,25 @@ class CheckInstallationTest extends TestCase
         ]);
 
         $this->artisan('sso:check-installation')
+            ->expectsOutputToContain('Installation check failed.')
+            ->assertFailed();
+    }
+
+    public function test_provider_check_rejects_mismatched_moph_callback(): void
+    {
+        config([
+            'services.moph_id.enabled' => true,
+            'services.moph_id.health_id.client_id' => 'test-health-client',
+            'services.moph_id.health_id.client_secret' => 'test-health-secret',
+            'services.moph_id.health_id.redirect_uri' => 'https://sso.example.test/wrong',
+            'services.moph_id.health_id.base_url' => 'https://uat-moph.id.th',
+            'services.moph_id.provider_id.client_id' => 'test-provider-client',
+            'services.moph_id.provider_id.secret_key' => 'test-provider-secret',
+            'services.moph_id.provider_id.base_url' => 'https://uat-provider.id.th',
+        ]);
+
+        $this->artisan('sso:check-installation')
+            ->expectsOutputToContain('MOPH ID callback URI')
             ->expectsOutputToContain('Installation check failed.')
             ->assertFailed();
     }

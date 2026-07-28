@@ -44,7 +44,12 @@ class ProviderAuthorizationUrlService
             'services.moph_id.health_id.authorization_path',
         );
 
-        if (! str_starts_with($path, '/') || str_starts_with($path, '//')) {
+        if (
+            preg_match('#^/[A-Za-z0-9/_-]+$#D', $path) !== 1
+            || str_contains($path, '//')
+            || str_contains($path, '/./')
+            || str_contains($path, '/../')
+        ) {
             throw new BrokerRequestException(
                 'server_error',
                 'The Health ID authorization path is invalid.',
@@ -86,6 +91,7 @@ class ProviderAuthorizationUrlService
             || ! isset($parts['host'])
             || isset($parts['user'])
             || isset($parts['pass'])
+            || isset($parts['query'])
             || isset($parts['fragment'])
         ) {
             throw new BrokerRequestException(

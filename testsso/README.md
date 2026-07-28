@@ -48,6 +48,34 @@ sudo httpd -t
 sudo httpd -S
 ```
 
+## Automated OAuth client setup
+
+หลังอัปโหลดโฟลเดอร์ `testsso` แล้ว แนะนำให้สร้าง application, OAuth client
+และไฟล์ config ด้วย Admin API ผ่านสคริปต์บน AlmaLinux 9:
+
+```bash
+cd /var/www/sso-api
+sudo bash scripts/setup-testsso-client.sh
+```
+
+หาก client เดิมมีอยู่แล้วแต่ไม่มี secret เดิม:
+
+```bash
+cd /var/www/sso-api
+sudo bash scripts/setup-testsso-client.sh --rotate-existing
+```
+
+ตัวเลือก `--rotate-existing` จะยกเลิก secret เดิมทันที และจะสร้าง testsso
+OAuth client ใหม่หาก callback/provider policy เดิมไม่ตรง การเปลี่ยนแปลง
+จำกัดเฉพาะ application `testsso` สคริปต์ไม่แสดง secret ออกหน้าจอและติดตั้ง
+`/etc/sobmoei/testsso.php` เป็น `root:apache 0640`
+
+หน้า `index.php` จะแสดงปุ่ม Login เมื่อ config ผ่าน validation และแสดง
+HTTP 503 พร้อมสถานะที่ชัดเจนเมื่อ config ยังไม่พร้อม
+
+ดูขั้นตอน UAT ทั้งหมดที่
+[`docs/PROVIDER_ID_UAT.md`](../docs/PROVIDER_ID_UAT.md)
+
 ## Security behavior
 
 - บังคับ HTTPS สำหรับ SSO endpoint และ callback

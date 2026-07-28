@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Contracts\ProviderIdIdentityProvider;
 use App\Contracts\ThaIdIdentityProvider;
+use App\Services\ProviderIdIdentityProvider as ProviderIdIdentityProviderService;
 use App\Services\ThaIdIdentityProvider as ThaIdIdentityProviderService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -16,6 +18,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(
+            ProviderIdIdentityProvider::class,
+            ProviderIdIdentityProviderService::class,
+        );
         $this->app->bind(
             ThaIdIdentityProvider::class,
             ThaIdIdentityProviderService::class,

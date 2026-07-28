@@ -17,7 +17,6 @@ class EnvironmentTemplateTest extends TestCase
             'THAID_CLIENT_SECRET',
             'HEALTH_ID_CLIENT_ID',
             'HEALTH_ID_CLIENT_SECRET',
-            'HEALTH_ID_REDIRECT_URI',
             'PROVIDER_ID_CLIENT_ID',
             'PROVIDER_ID_SECRET_KEY',
         ] as $name) {
@@ -31,6 +30,12 @@ class EnvironmentTemplateTest extends TestCase
             '#^THAID_REDIRECT_URI='
                 .'https://sobmoeiservice\.moph\.go\.th/'
                 .'call/sso/callback/thaid$#m',
+            $template,
+        );
+        $this->assertMatchesRegularExpression(
+            '#^HEALTH_ID_REDIRECT_URI='
+                .'https://sobmoeiservice\.moph\.go\.th/'
+                .'call/sso/callback/provider-id$#m',
             $template,
         );
     }
@@ -76,6 +81,8 @@ class EnvironmentTemplateTest extends TestCase
             'THAID_CLOCK_SKEW_SECONDS=60',
             'THAID_DISCOVERY_CACHE_SECONDS=300',
             'THAID_JWKS_CACHE_SECONDS=300',
+            'MOPH_ID_CLOCK_SKEW_SECONDS=60',
+            'PROVIDER_ID_PUBLIC_KEY_CACHE_SECONDS=300',
         ] as $setting) {
             $this->assertMatchesRegularExpression(
                 '/^'.preg_quote($setting, '/').'$/m',

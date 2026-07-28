@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Sso\OrganizationSelectionController;
+use App\Http\Controllers\Sso\ProviderIdCallbackController;
 use App\Http\Controllers\Sso\ProviderSelectionController;
 use App\Http\Controllers\Sso\ThaIdCallbackController;
 use Illuminate\Support\Facades\Route;
@@ -16,6 +17,12 @@ Route::get(
     ThaIdCallbackController::class,
 )->middleware('throttle:sso-browser')
     ->name('sso.callback.thaid');
+
+Route::get(
+    '/sso/callback/provider-id',
+    ProviderIdCallbackController::class,
+)->middleware('throttle:sso-browser')
+    ->name('sso.callback.provider-id');
 
 Route::post(
     '/broker/transactions/{transaction}/organization',

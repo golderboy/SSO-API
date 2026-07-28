@@ -14,11 +14,15 @@ upstream identity ที่ตรวจสอบแล้วจับคู่�
 
 ### Provider ID
 
-1. ตรวจ Health ID token ก่อนแลก Provider ID token
-2. ตรวจ Provider ID token/profile
-3. ใช้ verified `account_id` เป็น external subject
-4. normalize `hash_cid` SHA-256 เป็น lowercase hex 64 ตัวอักษร
-5. HMAC `hash_cid` ซ้ำแล้วเทียบ `users.provider_cid_hash`
+1. แลก Health ID authorization code ผ่าน TLS และใช้ Health ID access token
+   เป็น opaque credential สำหรับแลก Provider ID token เท่านั้น
+2. ตรวจ Provider ID token ด้วย RSA public key และ `RS256`
+3. ตรวจให้ `account_id` จาก Health ID, Provider ID token response และ profile
+   ตรงกัน
+4. ใช้ verified `account_id` เป็น external subject
+5. normalize `hash_cid` SHA-256 เป็น lowercase hex 64 ตัวอักษร
+6. HMAC `hash_cid` ซ้ำแล้วเทียบ `users.provider_cid_hash`
+7. ใช้เฉพาะ grant ที่ organization `hcode` อยู่ใน Provider ID profile
 
 ไม่บันทึก raw subject, PID หรือ Provider ID `hash_cid` ลง
 `external_identities`
