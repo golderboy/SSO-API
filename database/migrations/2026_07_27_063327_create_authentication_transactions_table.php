@@ -62,7 +62,7 @@ return new class extends Migration
                 .'ADD CONSTRAINT authentication_transactions_status_check '
                 ."CHECK (status IN ('{$statuses}')), "
                 .'ADD CONSTRAINT authentication_transactions_provider_check '
-                ."(selected_provider IS NULL OR selected_provider IN ('{$providers}'))",
+                ."CHECK (selected_provider IS NULL OR selected_provider IN ('{$providers}'))",
             );
         }
     }

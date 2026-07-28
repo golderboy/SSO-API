@@ -208,6 +208,11 @@ class DatabaseSchemaSqlTest extends TestCase
         $rollback = (string) file_get_contents(
             $base.'2026_07_27_063327_authentication_transactions_rollback.sql',
         );
+        $migration = (string) file_get_contents(
+            dirname(__DIR__, 2)
+                .'/database/migrations/'
+                .'2026_07_27_063327_create_authentication_transactions_table.php',
+        );
 
         $this->assertStringContainsString(
             '`downstream_request` TEXT NOT NULL',
@@ -216,6 +221,15 @@ class DatabaseSchemaSqlTest extends TestCase
         $this->assertStringContainsString(
             'authentication_transactions_upstream_state_hash_unique',
             $upgrade,
+        );
+        $this->assertStringContainsString(
+            'CONSTRAINT `authentication_transactions_provider_check`'
+                ."\n        CHECK (",
+            $upgrade,
+        );
+        $this->assertStringContainsString(
+            'CHECK (selected_provider IS NULL OR selected_provider IN',
+            $migration,
         );
         $this->assertStringContainsString(
             "CHECK (`status` IN (\n            'pending', 'provider_selected'",
