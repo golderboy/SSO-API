@@ -57,4 +57,30 @@ class DeploymentStructureTest extends TestCase
             $script,
         );
     }
+
+    public function test_testsso_setup_rejects_super_admin_before_configuration_changes(): void
+    {
+        $script = (string) file_get_contents(
+            dirname(__DIR__, 2).'/scripts/setup-testsso-client.sh',
+        );
+        $roleCheckPosition = strpos(
+            $script,
+            'Authenticated account has role ${admin_role}',
+        );
+        $applicationListPosition = strpos(
+            $script,
+            '${API_BASE_URL}/admin/applications?per_page=100',
+        );
+
+        $this->assertNotFalse($roleCheckPosition);
+        $this->assertNotFalse($applicationListPosition);
+        $this->assertLessThan(
+            $applicationListPosition,
+            $roleCheckPosition,
+        );
+        $this->assertStringContainsString(
+            'SuperAdmin can manage access grants but cannot change applications or OAuth clients.',
+            $script,
+        );
+    }
 }

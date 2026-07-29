@@ -152,6 +152,33 @@ if [[ "${http_status}" != "200" ]]; then
     exit 1
 fi
 
+admin_role="$(
+    php -r '
+        $payload = json_decode(
+            file_get_contents($argv[1]),
+            true,
+            32,
+            JSON_THROW_ON_ERROR
+        );
+        $role = $payload["data"]["user"]["system_role"] ?? null;
+        if (!is_string($role) || !in_array(
+            $role,
+            ["admin", "super_admin"],
+            true
+        )) {
+            exit(1);
+        }
+        echo $role;
+    ' "${response_file}"
+)"
+
+if [[ "${admin_role}" != "admin" ]]; then
+    echo "Authenticated account has role ${admin_role}; testsso setup requires the single Admin account." >&2
+    echo "SuperAdmin can manage access grants but cannot change applications or OAuth clients." >&2
+    echo "No application, OAuth client, or configuration was changed." >&2
+    exit 1
+fi
+
 admin_token="$(
     php -r '
         $payload = json_decode(
