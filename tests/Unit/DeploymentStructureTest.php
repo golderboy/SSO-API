@@ -83,4 +83,24 @@ class DeploymentStructureTest extends TestCase
             $script,
         );
     }
+
+    public function test_testsso_setup_skips_redundant_application_updates(): void
+    {
+        $script = (string) file_get_contents(
+            dirname(__DIR__, 2).'/scripts/setup-testsso-client.sh',
+        );
+
+        $this->assertStringContainsString(
+            'application_matches=true',
+            $script,
+        );
+        $this->assertStringContainsString(
+            'if [[ "${application_matches}" == "false" ]]',
+            $script,
+        );
+        $this->assertStringContainsString(
+            'The response was not a JSON API error; inspect ModSecurity before retrying.',
+            $script,
+        );
+    }
 }

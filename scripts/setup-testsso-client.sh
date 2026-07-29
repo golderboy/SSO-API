@@ -312,22 +312,6 @@ if [[ -z "${application_id}" ]]; then
     )"
 fi
 
-application_update_request="${temporary_directory}/application-update.json"
-export TESTSSO_SETUP_BASE_URL="${TESTSSO_BASE_URL}"
-php -r '
-    file_put_contents(
-        $argv[1],
-        json_encode([
-            "name" => "Sobmoei SSO Test Client",
-            "slug" => "testsso",
-            "base_url" => getenv("TESTSSO_SETUP_BASE_URL"),
-            "require_organization_match" => true,
-            "is_active" => true,
-        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)
-    );
-' "${application_update_request}"
-unset TESTSSO_SETUP_BASE_URL
-
 http_status="$(
     curl \
         --silent \
@@ -336,17 +320,104 @@ http_status="$(
         --user-agent "${USER_AGENT}" \
         --header "${API_HOST_HEADER}" \
         --header "@${auth_headers}" \
-        --header "Content-Type: application/json" \
-        --request PATCH \
-        --data-binary "@${application_update_request}" \
         --output "${response_file}" \
         --write-out "%{http_code}" \
         "${API_BASE_URL}/admin/applications/${application_id}"
 )"
 
 if [[ "${http_status}" != "200" ]]; then
-    echo "Unable to normalize the testsso application: HTTP ${http_status}." >&2
+    echo "Unable to inspect the testsso application: HTTP ${http_status}." >&2
     exit 1
+fi
+
+export TESTSSO_SETUP_BASE_URL="${TESTSSO_BASE_URL}"
+if php -r '
+    $payload = json_decode(
+        file_get_contents($argv[1]),
+        true,
+        32,
+        JSON_THROW_ON_ERROR
+    );
+    $data = $payload["data"] ?? null;
+    $valid = is_array($data)
+        && ($data["name"] ?? null) === "Sobmoei SSO Test Client"
+        && ($data["slug"] ?? null) === "testsso"
+        && ($data["base_url"] ?? null) === getenv("TESTSSO_SETUP_BASE_URL")
+        && ($data["require_organization_match"] ?? null) === true
+        && ($data["is_active"] ?? null) === true;
+    exit($valid ? 0 : 1);
+' "${response_file}"; then
+    application_matches=true
+else
+    application_matches=false
+fi
+unset TESTSSO_SETUP_BASE_URL
+
+if [[ "${application_matches}" == "false" ]]; then
+    application_update_request="${temporary_directory}/application-update.json"
+    export TESTSSO_SETUP_BASE_URL="${TESTSSO_BASE_URL}"
+    php -r '
+        file_put_contents(
+            $argv[1],
+            json_encode([
+                "name" => "Sobmoei SSO Test Client",
+                "slug" => "testsso",
+                "base_url" => getenv("TESTSSO_SETUP_BASE_URL"),
+                "require_organization_match" => true,
+                "is_active" => true,
+            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)
+        );
+    ' "${application_update_request}"
+    unset TESTSSO_SETUP_BASE_URL
+
+    http_status="$(
+        curl \
+            --silent \
+            --show-error \
+            --max-time 20 \
+            --user-agent "${USER_AGENT}" \
+            --header "${API_HOST_HEADER}" \
+            --header "@${auth_headers}" \
+            --header "Content-Type: application/json" \
+            --request PATCH \
+            --data-binary "@${application_update_request}" \
+            --output "${response_file}" \
+            --write-out "%{http_code}" \
+            "${API_BASE_URL}/admin/applications/${application_id}"
+    )"
+
+    if [[ "${http_status}" != "200" ]]; then
+        error_detail="$(
+            php -r '
+                try {
+                    $payload = json_decode(
+                        file_get_contents($argv[1]),
+                        true,
+                        16,
+                        JSON_THROW_ON_ERROR
+                    );
+                } catch (Throwable) {
+                    exit(0);
+                }
+                $message = $payload["message"] ?? null;
+                if (
+                    is_string($message)
+                    && $message !== ""
+                    && strlen($message) <= 500
+                    && !preg_match("/[\\x00-\\x1F\\x7F]/", $message)
+                ) {
+                    echo $message;
+                }
+            ' "${response_file}"
+        )"
+        echo "Unable to normalize the testsso application: HTTP ${http_status}." >&2
+        if [[ -n "${error_detail}" ]]; then
+            echo "Laravel API response: ${error_detail}" >&2
+        else
+            echo "The response was not a JSON API error; inspect ModSecurity before retrying." >&2
+        fi
+        exit 1
+    fi
 fi
 
 client_request="${temporary_directory}/client.json"
