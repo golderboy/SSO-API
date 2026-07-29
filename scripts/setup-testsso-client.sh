@@ -10,6 +10,7 @@ SSO_BASE_URL="https://sobmoeiservice.moph.go.th/call"
 TESTSSO_BASE_URL="https://sobmoeiservice.moph.go.th/testsso"
 TESTSSO_INSTALL_PATH="/var/www/html/testsso"
 CONFIG_PATH="/etc/sobmoei/testsso.php"
+CONFIG_DIRECTORY="/etc/sobmoei"
 USER_AGENT="Sobmoei-SSO-Setup/1.0"
 ROTATE_EXISTING=false
 
@@ -501,22 +502,22 @@ unset \
     client_id \
     client_secret
 
-install -d -o root -g apache -m 0750 "$(dirname "${CONFIG_PATH}")"
+install -d -o root -g apache -m 0750 "${CONFIG_DIRECTORY}"
 install -o root -g apache -m 0640 "${generated_config}" "${CONFIG_PATH}"
 
 if command -v semanage >/dev/null 2>&1; then
     semanage fcontext \
         -a \
         -t httpd_sys_content_t \
-        '/etc/sobmoei(/.*)?' 2>/dev/null \
+        "${CONFIG_DIRECTORY}(/.*)?" 2>/dev/null \
         || semanage fcontext \
             -m \
             -t httpd_sys_content_t \
-            '/etc/sobmoei(/.*)?'
+            "${CONFIG_DIRECTORY}(/.*)?"
 fi
 
 if command -v restorecon >/dev/null 2>&1; then
-    restorecon -F "${CONFIG_PATH}" || true
+    restorecon -RF "${CONFIG_DIRECTORY}"
 fi
 
 if [[ ! -r "${TESTSSO_INSTALL_PATH}/bootstrap.php" ]]; then
