@@ -26,4 +26,29 @@ class DeploymentStructureTest extends TestCase
         $this->assertStringContainsString('Windows PC ด้วย PowerShell', $guide);
         $this->assertStringContainsString('curl.exe', $guide);
     }
+
+    public function test_passport_key_preparation_never_rotates_existing_keys(): void
+    {
+        $script = (string) file_get_contents(
+            dirname(__DIR__, 2)
+                .'/scripts/prepare-almalinux-passport-keys.sh',
+        );
+
+        $this->assertStringContainsString(
+            'Only one Passport signing key exists.',
+            $script,
+        );
+        $this->assertStringContainsString(
+            'exists but is empty.',
+            $script,
+        );
+        $this->assertStringContainsString(
+            'passport:keys',
+            $script,
+        );
+        $this->assertStringNotContainsString(
+            'passport:keys --force',
+            $script,
+        );
+    }
 }

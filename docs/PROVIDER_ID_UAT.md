@@ -117,6 +117,7 @@ sudo -u apache php -l /var/www/html/testsso/logout.php
 cd /var/www/sso-api
 sudo bash scripts/prepare-almalinux-runtime.sh
 sudo -u apache php artisan optimize:clear
+sudo bash scripts/prepare-almalinux-passport-keys.sh
 sudo bash scripts/setup-testsso-client.sh
 ```
 
@@ -130,6 +131,7 @@ sudo bash scripts/setup-testsso-client.sh
 cd /var/www/sso-api
 sudo bash scripts/prepare-almalinux-runtime.sh
 sudo -u apache php artisan optimize:clear
+sudo bash scripts/prepare-almalinux-passport-keys.sh
 sudo bash scripts/setup-testsso-client.sh --rotate-existing
 ```
 

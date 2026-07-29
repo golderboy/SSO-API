@@ -31,6 +31,9 @@ php artisan key:generate
 - `APP_KEY`
 - `DB_PASSWORD`
 - `CID_LOOKUP_KEY`
+- `PROVIDER_CID_LOOKUP_KEY`
+- `EXTERNAL_SUBJECT_LOOKUP_KEY`
+- `TRANSACTION_HASH_KEY`
 - `AUDIT_HASH_KEY`
 - provider credential เมื่อเริ่มเฟส integration
 
@@ -60,8 +63,10 @@ SESSION_ENCRYPT=true
 - ไม่บันทึก `Authorization`, `X-API-Key`, CID หรือ request body ลง access log
 - ส่ง client IP ผ่าน trusted proxy ที่กำหนดรายการไว้ชัดเจนเท่านั้น
 
-สร้าง `CID_LOOKUP_KEY` และ `AUDIT_HASH_KEY` คนละค่ากัน
-แต่ละค่าต้องมี entropy อย่างน้อย 256 บิต และต้องมีแผน backup/rotation
+สร้าง `CID_LOOKUP_KEY`, `PROVIDER_CID_LOOKUP_KEY`,
+`EXTERNAL_SUBJECT_LOOKUP_KEY`, `TRANSACTION_HASH_KEY` และ `AUDIT_HASH_KEY`
+เป็นคนละค่ากัน แต่ละค่าต้องมี entropy อย่างน้อย 256 บิต
+และต้องมีแผน backup/rotation
 ห้ามเปลี่ยน `CID_LOOKUP_KEY` โดยไม่มี data migration เพราะ lookup เดิมจะใช้ไม่ได้
 ห้ามเปลี่ยนหรือทำ `APP_KEY` สูญหาย เพราะข้อมูล CID ที่เข้ารหัสไว้จะถอดรหัสไม่ได้
 

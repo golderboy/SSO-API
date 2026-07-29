@@ -28,6 +28,7 @@ storage/logs/
 logs/
 tmp/
 *.log
+/sso-*.sql
 
 # IDE and OS files
 .idea/

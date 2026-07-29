@@ -133,7 +133,11 @@ jobs:
           php artisan route:clear
 
       - name: Check deployment script syntax
-        run: bash -n scripts/setup-testsso-client.sh scripts/prepare-almalinux-runtime.sh
+        run: >-
+          bash -n
+          scripts/setup-testsso-client.sh
+          scripts/prepare-almalinux-runtime.sh
+          scripts/prepare-almalinux-passport-keys.sh
 
       - name: Check PHP style
         run: vendor/bin/pint --test

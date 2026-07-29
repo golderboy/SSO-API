@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 umask 077
 
+APP_ROOT="/var/www/sso-api"
 API_BASE_URL="http://127.0.0.1:8089/api/v1"
 API_HOST_HEADER="Host: sobmoeiservice.moph.go.th"
 BACKEND_HEALTH_URL="http://127.0.0.1:8089/up"
@@ -26,12 +27,24 @@ if [[ "${EUID}" -ne 0 ]]; then
     exit 77
 fi
 
-for command_name in curl php install runuser; do
+for command_name in curl php install runuser sleep; do
     if ! command -v "${command_name}" >/dev/null 2>&1; then
         echo "Required command is missing: ${command_name}" >&2
         exit 69
     fi
 done
+
+if [[ ! -f "${APP_ROOT}/artisan" ]]; then
+    echo "Laravel application was not found at ${APP_ROOT}." >&2
+    exit 66
+fi
+
+if ! runuser -u apache -- \
+    php "${APP_ROOT}/artisan" sso:check-installation --providers; then
+    echo "SSO installation preflight failed." >&2
+    echo "No credentials were requested and no configuration was changed." >&2
+    exit 1
+fi
 
 temporary_directory="$(mktemp -d)"
 login_request="${temporary_directory}/login.json"
@@ -59,19 +72,32 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if ! backend_status="$(
-    curl \
-        --silent \
-        --show-error \
-        --max-time 20 \
-        --user-agent "${USER_AGENT}" \
-        --header "${API_HOST_HEADER}" \
-        --output /dev/null \
-        --write-out "%{http_code}" \
-        "${BACKEND_HEALTH_URL}"
-)"; then
+backend_status=""
+
+for attempt in 1 2 3; do
+    if backend_status="$(
+        curl \
+            --silent \
+            --show-error \
+            --connect-timeout 3 \
+            --max-time 10 \
+            --user-agent "${USER_AGENT}" \
+            --header "${API_HOST_HEADER}" \
+            --output /dev/null \
+            --write-out "%{http_code}" \
+            "${BACKEND_HEALTH_URL}"
+    )" && [[ "${backend_status}" == "200" ]]; then
+        break
+    fi
+
+    if [[ "${attempt}" -lt 3 ]]; then
+        sleep 2
+    fi
+done
+
+if [[ -z "${backend_status}" || "${backend_status}" == "000" ]]; then
     echo "Unable to connect to the local SSO backend." >&2
-    echo "Run scripts/prepare-almalinux-runtime.sh and verify port 8089 first." >&2
+    echo "Inspect Apache, PHP-FPM, and sso-api-error.log before retrying." >&2
     exit 1
 fi
 
