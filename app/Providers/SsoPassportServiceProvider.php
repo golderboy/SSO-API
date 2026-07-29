@@ -54,6 +54,12 @@ class SsoPassportServiceProvider extends PassportServiceProvider
 
         parent::boot();
 
+        // Cached routes are restored after service providers have booted. The
+        // middleware was already attached while Laravel built the route cache.
+        if ($this->app->routesAreCached()) {
+            return;
+        }
+
         $authorizationRoute = Route::getRoutes()->getByName(
             'passport.authorizations.authorize',
         );

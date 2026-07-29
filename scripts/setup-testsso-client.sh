@@ -3,7 +3,9 @@
 set -Eeuo pipefail
 umask 077
 
-API_BASE_URL="https://sobmoeiservice.moph.go.th/call/api/v1"
+API_BASE_URL="http://127.0.0.1:8089/api/v1"
+API_HOST_HEADER="Host: sobmoeiservice.moph.go.th"
+BACKEND_HEALTH_URL="http://127.0.0.1:8089/up"
 SSO_BASE_URL="https://sobmoeiservice.moph.go.th/call"
 TESTSSO_BASE_URL="https://sobmoeiservice.moph.go.th/testsso"
 TESTSSO_INSTALL_PATH="/var/www/html/testsso"
@@ -44,6 +46,7 @@ cleanup() {
             --show-error \
             --max-time 20 \
             --user-agent "${USER_AGENT}" \
+            --header "${API_HOST_HEADER}" \
             --header "@${auth_headers}" \
             --request POST \
             --output /dev/null \
@@ -54,6 +57,28 @@ cleanup() {
     rm -rf -- "${temporary_directory}"
 }
 trap cleanup EXIT
+
+if ! backend_status="$(
+    curl \
+        --silent \
+        --show-error \
+        --max-time 20 \
+        --user-agent "${USER_AGENT}" \
+        --header "${API_HOST_HEADER}" \
+        --output /dev/null \
+        --write-out "%{http_code}" \
+        "${BACKEND_HEALTH_URL}"
+)"; then
+    echo "Unable to connect to the local SSO backend." >&2
+    echo "Run scripts/prepare-almalinux-runtime.sh and verify port 8089 first." >&2
+    exit 1
+fi
+
+if [[ "${backend_status}" != "200" ]]; then
+    echo "Local SSO backend health check returned HTTP ${backend_status}." >&2
+    echo "No credentials were requested and no configuration was changed." >&2
+    exit 1
+fi
 
 read -r -p "Admin email: " admin_email
 read -r -s -p "Admin password: " admin_password
@@ -85,6 +110,7 @@ http_status="$(
         --show-error \
         --max-time 20 \
         --user-agent "${USER_AGENT}" \
+        --header "${API_HOST_HEADER}" \
         --header "Accept: application/json" \
         --header "Content-Type: application/json" \
         --request POST \
@@ -136,6 +162,7 @@ http_status="$(
         --show-error \
         --max-time 20 \
         --user-agent "${USER_AGENT}" \
+        --header "${API_HOST_HEADER}" \
         --header "@${auth_headers}" \
         --output "${response_file}" \
         --write-out "%{http_code}" \
@@ -193,6 +220,7 @@ if [[ -z "${application_id}" ]]; then
             --show-error \
             --max-time 20 \
             --user-agent "${USER_AGENT}" \
+            --header "${API_HOST_HEADER}" \
             --header "@${auth_headers}" \
             --header "Content-Type: application/json" \
             --request POST \
@@ -252,6 +280,7 @@ http_status="$(
         --show-error \
         --max-time 20 \
         --user-agent "${USER_AGENT}" \
+        --header "${API_HOST_HEADER}" \
         --header "@${auth_headers}" \
         --header "Content-Type: application/json" \
         --request PATCH \
@@ -285,6 +314,7 @@ http_status="$(
         --show-error \
         --max-time 20 \
         --user-agent "${USER_AGENT}" \
+        --header "${API_HOST_HEADER}" \
         --header "@${auth_headers}" \
         --header "Content-Type: application/json" \
         --request POST \
@@ -301,6 +331,7 @@ if [[ "${http_status}" == "409" && "${ROTATE_EXISTING}" == "true" ]]; then
             --show-error \
             --max-time 20 \
             --user-agent "${USER_AGENT}" \
+            --header "${API_HOST_HEADER}" \
             --header "@${auth_headers}" \
             --output "${response_file}" \
             --write-out "%{http_code}" \
@@ -344,6 +375,7 @@ if [[ "${http_status}" == "409" && "${ROTATE_EXISTING}" == "true" ]]; then
                 --show-error \
                 --max-time 20 \
                 --user-agent "${USER_AGENT}" \
+                --header "${API_HOST_HEADER}" \
                 --header "@${auth_headers}" \
                 --request DELETE \
                 --output "${response_file}" \
@@ -362,6 +394,7 @@ if [[ "${http_status}" == "409" && "${ROTATE_EXISTING}" == "true" ]]; then
                 --show-error \
                 --max-time 20 \
                 --user-agent "${USER_AGENT}" \
+                --header "${API_HOST_HEADER}" \
                 --header "@${auth_headers}" \
                 --header "Content-Type: application/json" \
                 --request POST \
@@ -377,6 +410,7 @@ if [[ "${http_status}" == "409" && "${ROTATE_EXISTING}" == "true" ]]; then
                 --show-error \
                 --max-time 20 \
                 --user-agent "${USER_AGENT}" \
+                --header "${API_HOST_HEADER}" \
                 --header "@${auth_headers}" \
                 --request POST \
                 --output "${response_file}" \

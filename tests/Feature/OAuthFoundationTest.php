@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\BrokerAuthorizationRequest;
 use App\Models\SsoSubject;
 use App\Models\User;
 use App\Providers\SsoPassportServiceProvider;
@@ -80,6 +81,16 @@ class OAuthFoundationTest extends TestCase
         $this->assertFalse(Passport::$implicitGrantEnabled);
         $this->assertFalse(Passport::$passwordGrantEnabled);
         $this->assertFalse(Passport::$registersJsonApiRoutes);
+
+        $authorizationRoute = Route::getRoutes()->getByName(
+            'passport.authorizations.authorize',
+        );
+
+        $this->assertNotNull($authorizationRoute);
+        $this->assertContains(
+            BrokerAuthorizationRequest::class,
+            $authorizationRoute->gatherMiddleware(),
+        );
     }
 
     public function test_oauth_lifetimes_match_the_approved_contract(): void
