@@ -35,7 +35,8 @@ fi
 
 configured_key_directory="$(
     runuser -u "${APACHE_USER}" -- php -r '
-        $app = require $argv[1];
+        require $argv[1]."/vendor/autoload.php";
+        $app = require $argv[1]."/bootstrap/app.php";
         $app->make(
             Illuminate\Contracts\Console\Kernel::class
         )->bootstrap();
@@ -46,7 +47,7 @@ configured_key_directory="$(
         }
 
         echo rtrim($path, "/\\");
-    ' "${APP_ROOT}/bootstrap/app.php"
+    ' "${APP_ROOT}"
 )"
 
 if [[ "${configured_key_directory}" != "${KEY_DIRECTORY}" ]]; then

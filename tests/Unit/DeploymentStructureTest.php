@@ -46,6 +46,12 @@ class DeploymentStructureTest extends TestCase
             'passport:keys',
             $script,
         );
+        $autoloadPosition = strpos($script, '/vendor/autoload.php');
+        $bootstrapPosition = strpos($script, '/bootstrap/app.php');
+
+        $this->assertNotFalse($autoloadPosition);
+        $this->assertNotFalse($bootstrapPosition);
+        $this->assertLessThan($bootstrapPosition, $autoloadPosition);
         $this->assertStringNotContainsString(
             'passport:keys --force',
             $script,
