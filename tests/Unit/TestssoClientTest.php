@@ -172,6 +172,17 @@ class TestssoClientTest extends TestCase
         $this->assertStringContainsString('Require all denied', $htaccess);
     }
 
+    public function test_test_client_csp_allows_same_origin_waf_frame(): void
+    {
+        $bootstrap = (string) file_get_contents(
+            dirname(__DIR__, 2).'/testsso/bootstrap.php',
+        );
+
+        $this->assertStringContainsString("frame-src 'self'", $bootstrap);
+        $this->assertStringContainsString("form-action 'self'", $bootstrap);
+        $this->assertStringNotContainsString('form-action https:', $bootstrap);
+    }
+
     public function test_userinfo_contract_identifies_provider_without_cid(): void
     {
         $contract = (string) file_get_contents(

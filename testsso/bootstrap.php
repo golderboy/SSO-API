@@ -103,7 +103,7 @@ function testsso_security_headers(): void
     header('Cache-Control: no-store, no-cache, must-revalidate, private');
     header('Pragma: no-cache');
     header('Content-Type: text/html; charset=UTF-8');
-    header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+    header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; frame-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
     header('Referrer-Policy: no-referrer');
     header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
     header('X-Content-Type-Options: nosniff');
