@@ -54,10 +54,10 @@ class CheckInstallationTest extends TestCase
             'services.moph_id.health_id.client_id' => 'test-health-client',
             'services.moph_id.health_id.client_secret' => 'test-health-secret',
             'services.moph_id.health_id.redirect_uri' => 'https://sso.example.test/sso/callback/provider-id',
-            'services.moph_id.health_id.base_url' => 'https://uat-moph.id.th',
+            'services.moph_id.health_id.base_url' => 'https://health-id.example.test',
             'services.moph_id.provider_id.client_id' => 'test-provider-client',
             'services.moph_id.provider_id.secret_key' => 'test-provider-secret',
-            'services.moph_id.provider_id.base_url' => 'https://uat-provider.id.th',
+            'services.moph_id.provider_id.base_url' => 'https://provider-id.example.test',
         ]);
 
         $this->artisan('sso:check-installation', ['--providers' => true])
@@ -83,10 +83,10 @@ class CheckInstallationTest extends TestCase
             'services.moph_id.health_id.client_id' => 'test-health-client',
             'services.moph_id.health_id.client_secret' => 'test-health-secret',
             'services.moph_id.health_id.redirect_uri' => 'https://sso.example.test/wrong',
-            'services.moph_id.health_id.base_url' => 'https://uat-moph.id.th',
+            'services.moph_id.health_id.base_url' => 'https://health-id.example.test',
             'services.moph_id.provider_id.client_id' => 'test-provider-client',
             'services.moph_id.provider_id.secret_key' => 'test-provider-secret',
-            'services.moph_id.provider_id.base_url' => 'https://uat-provider.id.th',
+            'services.moph_id.provider_id.base_url' => 'https://provider-id.example.test',
         ]);
 
         $this->artisan('sso:check-installation')
@@ -125,6 +125,37 @@ class CheckInstallationTest extends TestCase
 
         $this->artisan('sso:check-installation')
             ->expectsOutputToContain('1 user record(s) require backfill')
+            ->assertFailed();
+    }
+
+    public function test_production_provider_check_rejects_uat_hosts(): void
+    {
+        $this->app->detectEnvironment(fn (): string => 'production');
+        config([
+            'services.thaid.client_id' => 'test-client',
+            'services.thaid.client_secret' => 'test-secret',
+            'services.thaid.redirect_uri' => 'https://sso.example.test/sso/callback/thaid',
+            'services.thaid.issuer' => 'https://imauth.bora.dopa.go.th',
+            'services.thaid.authorization_url' => 'https://imauth.bora.dopa.go.th/auth',
+            'services.thaid.token_url' => 'https://imauth.bora.dopa.go.th/token',
+            'services.thaid.introspection_url' => 'https://imauth.bora.dopa.go.th/introspect',
+            'services.thaid.revocation_url' => 'https://imauth.bora.dopa.go.th/revoke',
+            'services.thaid.discovery_url' => 'https://imauth.bora.dopa.go.th/discovery',
+            'services.moph_id.health_id.client_id' => 'test-health-client',
+            'services.moph_id.health_id.client_secret' => 'test-health-secret',
+            'services.moph_id.health_id.redirect_uri' => 'https://sso.example.test/sso/callback/provider-id',
+            'services.moph_id.health_id.base_url' => 'https://uat-moph.id.th',
+            'services.moph_id.provider_id.client_id' => 'test-provider-client',
+            'services.moph_id.provider_id.secret_key' => 'test-provider-secret',
+            'services.moph_id.provider_id.base_url' => 'https://uat-provider.id.th',
+        ]);
+
+        $this->artisan('sso:check-installation', ['--providers' => true])
+            ->expectsOutputToContain('Production provider endpoints')
+            ->expectsOutputToContain(
+                'UAT hostname configured for: Health ID base URL, Provider ID base URL',
+            )
+            ->expectsOutputToContain('Installation check failed.')
             ->assertFailed();
     }
 }

@@ -40,6 +40,32 @@ class EnvironmentTemplateTest extends TestCase
         );
     }
 
+    public function test_environment_templates_have_no_uat_provider_fallback(): void
+    {
+        foreach ([
+            '.env.example',
+            '.env.almalinux.example',
+        ] as $filename) {
+            $template = (string) file_get_contents(
+                dirname(__DIR__, 2).'/'.$filename,
+            );
+
+            $this->assertStringNotContainsString('uat-moph.id.th', $template);
+            $this->assertStringNotContainsString(
+                'uat-provider.id.th',
+                $template,
+            );
+            $this->assertMatchesRegularExpression(
+                '/^HEALTH_ID_BASE_URL=$/m',
+                $template,
+            );
+            $this->assertMatchesRegularExpression(
+                '/^PROVIDER_ID_BASE_URL=$/m',
+                $template,
+            );
+        }
+    }
+
     public function test_almalinux_template_contains_no_application_or_lookup_secret(): void
     {
         $template = (string) file_get_contents(

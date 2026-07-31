@@ -73,8 +73,10 @@ OAuth client ใหม่หาก callback/provider policy เดิมไม�
 หน้า `index.php` จะแสดงปุ่ม Login เมื่อ config ผ่าน validation และแสดง
 HTTP 503 พร้อมสถานะที่ชัดเจนเมื่อ config ยังไม่พร้อม
 
-ดูขั้นตอน UAT ทั้งหมดที่
-[`docs/PROVIDER_ID_UAT.md`](../docs/PROVIDER_ID_UAT.md)
+`testsso` เชื่อมต่อเฉพาะ SSO กลางที่
+`https://sobmoeiservice.moph.go.th/call` เท่านั้น ค่า Production endpoint และ
+credential ของ ThaID, Health ID และ Provider ID ต้องอยู่ใน
+`/var/www/sso-api/.env` และห้ามคัดลอกมาไว้ใน config ของ `testsso`
 
 ## Security behavior
 

@@ -11,7 +11,7 @@ class SsoSecurityHeadersTest extends TestCase
     {
         config([
             'services.thaid.authorization_url' => 'https://imauth.bora.dopa.go.th/api/v2/oauth2/auth/',
-            'services.moph_id.health_id.base_url' => 'https://uat-moph.id.th',
+            'services.moph_id.health_id.base_url' => 'https://health-id.example.test',
         ]);
 
         Route::middleware('web')->get(
@@ -27,7 +27,7 @@ class SsoSecurityHeadersTest extends TestCase
         $this->assertSame(
             "default-src 'none'; style-src 'self'; frame-src 'self'; "
             ."form-action 'self' https://imauth.bora.dopa.go.th "
-            ."https://uat-moph.id.th; base-uri 'none'; "
+            ."https://health-id.example.test; base-uri 'none'; "
             ."frame-ancestors 'none'",
             $policy,
         );

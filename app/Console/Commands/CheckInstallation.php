@@ -461,6 +461,63 @@ class CheckInstallation extends Command
                 'must be absolute provider paths without query, fragment, or dot segments',
             );
         }
+
+        if (
+            ($requireProviders || $requireThaId || $requireMophId)
+            && app()->environment('production')
+        ) {
+            $this->checkProductionProviderEndpoints();
+        }
+    }
+
+    private function checkProductionProviderEndpoints(): void
+    {
+        $endpoints = [
+            'ThaID issuer' => config('services.thaid.issuer'),
+            'ThaID authorization URL' => config(
+                'services.thaid.authorization_url',
+            ),
+            'ThaID token URL' => config('services.thaid.token_url'),
+            'ThaID introspection URL' => config(
+                'services.thaid.introspection_url',
+            ),
+            'ThaID revocation URL' => config(
+                'services.thaid.revocation_url',
+            ),
+            'ThaID discovery URL' => config(
+                'services.thaid.discovery_url',
+            ),
+            'Health ID base URL' => config(
+                'services.moph_id.health_id.base_url',
+            ),
+            'Provider ID base URL' => config(
+                'services.moph_id.provider_id.base_url',
+            ),
+        ];
+        $uatEndpoints = array_keys(array_filter(
+            $endpoints,
+            fn (mixed $endpoint): bool => $this->isUatEndpoint($endpoint),
+        ));
+
+        $this->record(
+            'Production provider endpoints',
+            $uatEndpoints === [],
+            $uatEndpoints === []
+                ? 'no UAT provider hostname configured'
+                : 'UAT hostname configured for: '.implode(', ', $uatEndpoints),
+        );
+    }
+
+    private function isUatEndpoint(mixed $endpoint): bool
+    {
+        if (! is_string($endpoint)) {
+            return false;
+        }
+
+        $host = parse_url($endpoint, PHP_URL_HOST);
+
+        return is_string($host)
+            && preg_match('/(^|[.-])uat([.-]|$)/i', $host) === 1;
     }
 
     /**
