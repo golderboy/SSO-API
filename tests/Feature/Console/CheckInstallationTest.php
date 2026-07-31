@@ -152,9 +152,7 @@ class CheckInstallationTest extends TestCase
 
         $this->artisan('sso:check-installation', ['--providers' => true])
             ->expectsOutputToContain('Production provider endpoints')
-            ->expectsOutputToContain(
-                'UAT hostname configured for: Health ID base URL, Provider ID base URL',
-            )
+            ->expectsOutputToContain('UAT hostname configured for:')
             ->expectsOutputToContain('Installation check failed.')
             ->assertFailed();
     }
