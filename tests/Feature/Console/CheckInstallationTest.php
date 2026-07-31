@@ -130,7 +130,7 @@ class CheckInstallationTest extends TestCase
 
     public function test_production_provider_check_rejects_uat_hosts(): void
     {
-        $this->app->detectEnvironment(fn (): string => 'production');
+        $this->app->instance('env', 'production');
         config([
             'services.thaid.client_id' => 'test-client',
             'services.thaid.client_secret' => 'test-secret',
